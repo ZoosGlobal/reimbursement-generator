@@ -1210,31 +1210,48 @@ td input,td select{min-height:34px;padding:5px 8px;border-radius:6px;font-size:1
     return bytes;
   }
 
+  // PDF.js page rendering can, on some PDFs/browsers, stall indefinitely rather
+  // than reject. Without a hard timeout a single bad PDF would permanently wedge
+  // either the receipt-upload flow or the whole "Generate PDF" step. Every PDF.js
+  // call that isn't guaranteed to settle is wrapped with this.
+  function withTimeout(promise,ms,label){
+    return new Promise((resolve,reject)=>{
+      const timer=setTimeout(()=>reject(new Error((label||'operation')+' timed out')),ms);
+      promise.then(v=>{clearTimeout(timer);resolve(v);},err=>{clearTimeout(timer);reject(err);});
+    });
+  }
+
   async function getPdfDocument(dataUrl){
     if(!window.pdfjsLib){
       throw new Error('PDF library failed to load. Check your internet connection and reload the page.');
     }
     ensurePdfWorker();
-    return window.pdfjsLib.getDocument({data:dataUrlToBytes(dataUrl)}).promise;
+    return withTimeout(window.pdfjsLib.getDocument({data:dataUrlToBytes(dataUrl)}).promise,15000,'PDF loading');
   }
 
   async function makePdfFirstPagePreview(dataUrl){
     const pdf=await getPdfDocument(dataUrl);
-    const page=await pdf.getPage(1);
+    const page=await withTimeout(pdf.getPage(1),10000,'PDF page load');
     const base=page.getViewport({scale:1});
     const scale=180/base.width;
     const viewport=page.getViewport({scale});
     const canvas=document.createElement('canvas');
     canvas.width=Math.ceil(viewport.width);
     canvas.height=Math.ceil(viewport.height);
-    await page.render({canvasContext:canvas.getContext('2d'),viewport}).promise;
+    await withTimeout(page.render({canvasContext:canvas.getContext('2d'),viewport}).promise,10000,'PDF render');
     return {data:canvas.toDataURL('image/jpeg',0.88),pages:pdf.numPages};
   }
 
   async function renderPdfReceipt(dataUrl,container){
     const pdf=await getPdfDocument(dataUrl);
     for(let p=1;p<=pdf.numPages;p++){
-      const page=await pdf.getPage(p);
+      let page;
+      try{
+        page=await withTimeout(pdf.getPage(p),10000,'PDF page load');
+      }catch(err){
+        appendPdfRenderFallback(container,p,err);
+        continue;
+      }
       const viewport=page.getViewport({scale:1.45});
       const canvas=document.createElement('canvas');
       canvas.width=Math.ceil(viewport.width);
@@ -1250,11 +1267,27 @@ td input,td select{min-height:34px;padding:5px 8px;border-radius:6px;font-size:1
       nativePage.appendChild(canvas);
       container.appendChild(nativePage);
 
-      await page.render({
-        canvasContext:canvas.getContext('2d'),
-        viewport
-      }).promise;
+      try{
+        await withTimeout(page.render({
+          canvasContext:canvas.getContext('2d'),
+          viewport
+        }).promise,15000,'PDF render');
+      }catch(err){
+        // Rendering stalled/failed for this page — drop the half-drawn native
+        // page and swap in a clearly-labelled placeholder instead of leaving
+        // the "Generate PDF" flow hung or a blank page in the document.
+        nativePage.remove();
+        appendPdfRenderFallback(container,p,err);
+      }
     }
+  }
+
+  function appendPdfRenderFallback(container,pageNumber,err){
+    console.error('PDF receipt page render failed',pageNumber,err);
+    const page=document.createElement('div');
+    page.className='receipt-page';
+    page.innerHTML=`<div class="receipt-placeholder">Page ${pageNumber} of this PDF receipt could not be rendered in the browser. The original file remains attached to this expense.</div>`;
+    container.appendChild(page);
   }
 
   // ---------- Print / PDF build ----------
