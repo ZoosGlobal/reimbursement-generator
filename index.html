@@ -5,10 +5,20 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Employee Reimbursement PDF Generator</title>
 
-<!-- Typography -->
+<!-- Typography: Georgia (display/headings) is a system font; Montserrat (UI/body) is loaded -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap">
+
+<!-- Applies a saved theme preference before first paint, so there is no flash of the wrong theme. -->
+<script>
+(function(){
+  try{
+    var t=localStorage.getItem('zoos_reimbursement_theme');
+    if(t==='dark') document.documentElement.setAttribute('data-theme','dark');
+  }catch(e){}
+})();
+</script>
 
 <!-- Third-party date selector -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
@@ -22,94 +32,177 @@
 
 <style>
 :root{
-  --navy:#0f2540;
-  --navy-2:#193a5e;
-  --navy-3:#24507d;
-  --accent:#2f6fe0;
-  --accent-soft:#eaf1fd;
-  --ink:#0f1723;
-  --muted:#64748b;
-  --muted-2:#94a3b8;
-  --bg:#eef1f6;
+  /* Zoos Global brand palette */
+  --zoos-black:#0a0a0a;
+  --zoos-black-2:#1a1a1a;
+  --zoos-gold:#c9a84c;
+  --zoos-gold-bright:#e5c158;
+  --zoos-gold-deep:#9b7a2f;
+  --zoos-white:#ffffff;
+  --zoos-ivory:#f9f6f0;
+  --zoos-grey:#888888;
+
+  --ink:#1a1a1a;
+  --muted:#6b6b6b;
+  --muted-2:#9a9a9a;
+  --bg:#f4f2ec;
   --surface:#ffffff;
-  --border:#e2e6ed;
-  --border-strong:#c7cede;
-  --danger:#c0271a;
-  --danger-bg:#fef2f1;
-  --warn:#a15c07;
-  --warn-bg:#fef8ec;
+  --border:#e7e2d3;
+  --border-strong:#d8d0b8;
+  --danger:#b3261e;
+  --danger-bg:#fbeceb;
+  --warn:#8a5a05;
+  --warn-bg:#faf1e0;
   --success:#0a7a4e;
   --success-bg:#eafbf3;
+
+  --gold:var(--zoos-gold);
+  --gold-bright:var(--zoos-gold-bright);
+  --gold-deep:var(--zoos-gold-deep);
+
   --radius-lg:16px;
   --radius:12px;
   --radius-sm:8px;
-  --shadow-sm:0 1px 2px rgba(15,23,42,.05),0 1px 1px rgba(15,23,42,.04);
-  --shadow-md:0 10px 24px -8px rgba(15,23,42,.16);
-  --shadow-lg:0 24px 48px -16px rgba(15,23,42,.22);
+  --shadow-sm:0 1px 2px rgba(10,10,10,.05),0 1px 1px rgba(10,10,10,.04);
+  --shadow-md:0 10px 24px -8px rgba(10,10,10,.14);
+  --shadow-lg:0 24px 48px -16px rgba(10,10,10,.20);
+
+  --font-display:Georgia,"Times New Roman",serif;
+  --font-body:"Montserrat",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ink:#f3efe4;
+    --muted:#b9b4a6;
+    --muted-2:#8d8878;
+    --bg:#0f0e0b;
+    --surface:#171512;
+    --border:#2c281f;
+    --border-strong:#3d3728;
+    --danger-bg:#2c1917;
+    --warn-bg:#2a2314;
+    --success-bg:#0f2419;
+  }
+}
+:root[data-theme="dark"]{
+  --ink:#f3efe4;
+  --muted:#b9b4a6;
+  --muted-2:#8d8878;
+  --bg:#0f0e0b;
+  --surface:#171512;
+  --border:#2c281f;
+  --border-strong:#3d3728;
+  --danger-bg:#2c1917;
+  --warn-bg:#2a2314;
+  --success-bg:#0f2419;
 }
 *{box-sizing:border-box}
 html,body{height:auto}
 body{
   margin:0;
-  font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  font-family:var(--font-body);
   background:
-    radial-gradient(1100px 420px at 8% -10%, rgba(47,111,224,.07), transparent 60%),
-    radial-gradient(900px 380px at 100% 0%, rgba(15,37,64,.05), transparent 55%),
+    linear-gradient(115deg, transparent 40%, rgba(201,168,76,.05) 60%, transparent 78%),
     var(--bg);
   color:var(--ink);
   -webkit-font-smoothing:antialiased;
   text-rendering:optimizeLegibility;
+  transition:background-color .2s ease,color .2s ease;
 }
 button,input,select{font:inherit;color:inherit}
-h1,h2,h3{margin:0}
+h1,h2,h3{margin:0;font-family:var(--font-display)}
 .app{width:min(96vw,1680px);max-width:1680px;margin:32px auto;padding:0 14px 48px}
 
 /* ---------- Header ---------- */
 .header{
   position:relative;
   overflow:hidden;
-  background:linear-gradient(155deg,var(--navy) 0%,var(--navy-2) 62%,var(--navy-3) 100%);
-  color:#fff;border-radius:var(--radius-lg) var(--radius-lg) 0 0;padding:26px 28px;
-  box-shadow:var(--shadow-md);
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-bottom:3px solid var(--gold);
+  color:var(--ink);border-radius:var(--radius-lg) var(--radius-lg) 0 0;padding:22px 28px;
+  box-shadow:var(--shadow-sm);
+  display:flex;align-items:flex-start;justify-content:space-between;gap:20px;
 }
 .header::before{
-  content:"";position:absolute;inset:0;pointer-events:none;
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:0;
   background:
-    radial-gradient(420px 220px at 92% -20%, rgba(255,255,255,.10), transparent 60%),
-    radial-gradient(360px 200px at 8% 120%, rgba(255,255,255,.06), transparent 60%);
+    linear-gradient(115deg, transparent 55%, rgba(201,168,76,.06) 70%, transparent 85%),
+    repeating-linear-gradient(115deg, transparent 0 34px, rgba(201,168,76,.045) 34px 36px);
+  -webkit-mask-image:linear-gradient(90deg,#000 0%,#000 55%,transparent 92%);
+  mask-image:linear-gradient(90deg,#000 0%,#000 55%,transparent 92%);
 }
-.header-kicker{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;opacity:.68;margin-bottom:4px}
-.header h1{font-size:22px;font-weight:700;letter-spacing:-.015em}
-.header p{margin:6px 0 0;opacity:.75;font-size:12.5px;max-width:640px;line-height:1.55}
+.header-main{position:relative;z-index:1;display:flex;align-items:center;gap:14px;min-width:0}
+.header-logo-mark{width:46px;height:46px;object-fit:contain;flex:0 0 46px;display:block}
+.header-wordmark{display:flex;flex-direction:column;line-height:1.05;font-family:var(--font-body);font-weight:800;letter-spacing:.01em;font-size:15px;color:var(--ink)}
+.header-wordmark span{font-size:10px;font-weight:800;letter-spacing:.16em;color:var(--gold-deep)}
+.header-copy{position:relative;z-index:1;min-width:0}
+.header-kicker{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-deep);margin-bottom:5px}
+.header h1{font-size:24px;font-weight:400;letter-spacing:-.005em;color:var(--ink)}
+.header p{margin:7px 0 0;color:var(--muted);font-size:12.5px;max-width:600px;line-height:1.6;font-family:var(--font-body)}
+.header-actions{position:relative;z-index:1;display:flex;align-items:center;gap:10px;flex:0 0 auto}
+.theme-toggle{
+  width:38px;height:38px;padding:0;border-radius:50%;
+  background:var(--surface);border:1px solid var(--border-strong);color:var(--ink);
+  display:inline-flex;align-items:center;justify-content:center;min-height:0;
+}
+.theme-toggle:hover{border-color:var(--gold)}
+.theme-toggle svg{width:17px;height:17px}
+.user-avatar{
+  width:38px;height:38px;border-radius:50%;flex:0 0 38px;
+  background:var(--zoos-black);color:var(--gold-bright);
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:800;letter-spacing:.02em;font-family:var(--font-body);
+  border:1px solid var(--zoos-black-2);
+}
 
 /* ---------- Panels ---------- */
-.panel{background:var(--surface);border:1px solid var(--border);border-top:0;padding:22px 26px;box-shadow:var(--shadow-sm)}
+.panel{background:var(--surface);border:1px solid var(--border);border-top:0;padding:24px 26px;box-shadow:var(--shadow-sm)}
 .panel:last-of-type{border-radius:0 0 var(--radius-lg) var(--radius-lg);padding-bottom:24px}
 .panel + .panel{border-top:1px solid var(--border);margin-top:0}
 .section-panel{margin-top:20px;border-radius:var(--radius-lg);border-top:1px solid var(--border);box-shadow:var(--shadow-sm)}
 
+.section-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:22px}
+.section-heading-copy{display:flex;align-items:flex-start;gap:14px;min-width:0}
+.section-number{
+  flex:0 0 34px;width:34px;height:34px;border-radius:9px;
+  background:linear-gradient(155deg,var(--gold-bright),var(--gold-deep));color:var(--zoos-black);
+  display:flex;align-items:center;justify-content:center;font-family:var(--font-body);
+  font-size:13px;font-weight:800;box-shadow:var(--shadow-sm);
+}
+.section-title{font-family:var(--font-body);font-size:13px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--ink)}
+.section-subtitle{font-size:12px;color:var(--muted);margin-top:3px;font-family:var(--font-body)}
+.section-heading-action{flex:0 0 auto}
+
 .section-label{
   font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
-  color:var(--navy-2);margin-bottom:16px;display:flex;align-items:center;gap:8px;
+  color:var(--gold-deep);margin-bottom:16px;display:flex;align-items:center;gap:8px;
 }
 .section-label::after{content:"";flex:1;height:1px;background:var(--border)}
 
-.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
-.field label{display:block;font-size:12px;font-weight:600;margin-bottom:6px;color:#374253;letter-spacing:.005em}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.field label{display:block;font-size:11.5px;font-weight:700;margin-bottom:6px;color:var(--ink);letter-spacing:.01em}
+/* Wraps just the input/select (not the label), so the icon centers on the
+   control itself rather than the label+control block. */
+.field-icon-wrap{position:relative}
+.field-icon-wrap > svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--muted-2);pointer-events:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.field-icon-wrap input,.field-icon-wrap select{padding-left:36px}
+.field-flag{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:18px;height:18px;pointer-events:none;display:flex;border-radius:50%;overflow:hidden;box-shadow:0 0 0 1px rgba(10,10,10,.08)}
+.field-flag svg{display:block;width:100%;height:100%}
+.field-icon-char{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:13px;font-weight:600;color:var(--muted);pointer-events:none}
 input,select{
-  width:100%;min-height:40px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);
-  padding:8px 12px;background:#fff;transition:border-color .14s ease,box-shadow .14s ease,background .14s ease;
-  box-shadow:0 1px 0 rgba(15,23,42,.02) inset;
+  width:100%;min-height:42px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);
+  padding:8px 12px;background:var(--surface);color:var(--ink);transition:border-color .14s ease,box-shadow .14s ease,background .14s ease;
 }
 input::placeholder{color:var(--muted-2)}
-input:hover,select:hover{border-color:#a7b1c2}
-input:focus,select:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0 3.5px rgba(47,111,224,.15)}
-input:disabled,select:disabled,input[readonly]{background:#f4f6f9;color:var(--muted);cursor:not-allowed}
+input:hover,select:hover{border-color:var(--gold)}
+input:focus,select:focus{outline:0;border-color:var(--gold-deep);box-shadow:0 0 0 3.5px rgba(201,168,76,.22)}
+input:disabled,select:disabled,input[readonly]{background:var(--bg);color:var(--muted);cursor:not-allowed}
 button:focus-visible,input:focus-visible,select:focus-visible,.receipt-thumb:focus-visible,label:focus-within{
-  outline:0;box-shadow:0 0 0 3.5px rgba(47,111,224,.28);
+  outline:0;box-shadow:0 0 0 3.5px rgba(201,168,76,.35);
 }
-select{appearance:none;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%2364748b' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 12px center;padding-right:32px}
-.filter-date{background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' fill='none' stroke='%2364748b' stroke-width='1.8' viewBox='0 0 24 24'%3E%3Crect x='3' y='4.5' width='18' height='16.5' rx='2.5'/%3E%3Cpath d='M3 9.5h18M8 2.5v4M16 2.5v4'/%3E%3C/svg%3E") no-repeat right 12px center;padding-right:34px}
+select{appearance:none;background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%236b6b6b' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 12px center;padding-right:32px}
+.filter-date{background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' fill='none' stroke='%236b6b6b' stroke-width='1.8' viewBox='0 0 24 24'%3E%3Crect x='3' y='4.5' width='18' height='16.5' rx='2.5'/%3E%3Cpath d='M3 9.5h18M8 2.5v4M16 2.5v4'/%3E%3C/svg%3E") no-repeat right 12px center;padding-right:34px}
 
 .toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:end;margin-top:18px}
 .toolbar .field{min-width:220px;flex:1}
@@ -118,29 +211,33 @@ select{appearance:none;background:#fff url("data:image/svg+xml,%3Csvg xmlns='htt
 
 /* ---------- Buttons ---------- */
 .actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px}
-button{border:0;border-radius:var(--radius-sm);padding:0 16px;min-height:40px;cursor:pointer;font-weight:600;font-size:13px;letter-spacing:.003em;transition:background .14s ease,box-shadow .14s ease,transform .1s ease,opacity .14s ease}
-.primary{background:var(--navy);color:#fff;box-shadow:var(--shadow-sm)}
-.primary:hover:not(:disabled){background:var(--navy-2);box-shadow:var(--shadow-md);transform:translateY(-1px)}
+button{border:0;border-radius:var(--radius-sm);padding:0 16px;min-height:42px;cursor:pointer;font-weight:700;font-size:13px;letter-spacing:.01em;font-family:var(--font-body);transition:background .14s ease,box-shadow .14s ease,transform .1s ease,opacity .14s ease}
+.primary{background:linear-gradient(155deg,var(--gold-bright),var(--gold-deep));color:var(--zoos-black);box-shadow:var(--shadow-sm)}
+.primary:hover:not(:disabled){box-shadow:var(--shadow-md);transform:translateY(-1px);filter:brightness(1.04)}
 .primary:active:not(:disabled){transform:translateY(0)}
-.primary:disabled{background:#dbe0e8;color:#9aa4b2;box-shadow:none;cursor:not-allowed}
-.secondary{background:#f1f4f8;color:var(--navy);border:1px solid transparent}
-.secondary:hover{background:#e6ebf2}
-.danger{background:#fff;color:var(--danger);border:1px solid #f4cac4}
-.danger:hover{background:var(--danger-bg);border-color:#eab3ac}
+.primary:disabled{background:var(--border-strong);color:var(--muted);box-shadow:none;cursor:not-allowed;filter:none}
+.secondary{background:var(--surface);color:var(--ink);border:1px solid var(--border-strong)}
+.secondary:hover{border-color:var(--gold);background:var(--bg)}
+.dark-solid{background:var(--zoos-black);color:var(--zoos-white);box-shadow:var(--shadow-sm)}
+.dark-solid:hover:not(:disabled){background:var(--zoos-black-2);box-shadow:var(--shadow-md);transform:translateY(-1px)}
+.dark-solid:disabled{background:var(--border-strong);color:var(--muted);box-shadow:none;cursor:not-allowed}
+.danger{background:var(--surface);color:var(--danger);border:1px solid #eecac4}
+.danger:hover{background:var(--danger-bg);border-color:#e0a99f}
 .remove{width:34px;height:34px;padding:0;display:inline-flex;align-items:center;justify-content:center;min-height:0;border-radius:var(--radius-sm)}
 .remove svg{width:15px;height:15px}
 .btn-icon{display:inline-flex;align-items:center;gap:7px}
-.pdf-primary{padding:0 20px}
+.pdf-primary{padding:0 22px}
+.receipt-stage-add svg{width:17px;height:17px;stroke-width:2.4}
 
 /* ---------- Status banner ---------- */
 .status{
   margin-top:16px;display:flex;align-items:flex-start;gap:10px;padding:12px 15px;
-  border-radius:var(--radius-sm);border:1px solid var(--border);border-left:3px solid var(--border-strong);background:#f8fafc;
+  border-radius:var(--radius-sm);border:1px solid var(--border);border-left:3px solid var(--border-strong);background:var(--bg);
   font-size:12.5px;color:var(--ink);line-height:1.55;
 }
 .status svg{flex:0 0 17px;margin-top:2px}
 .status strong{display:block;margin-bottom:2px;font-size:12.5px;font-weight:700}
-.status.status--warn{background:var(--warn-bg);border-color:#f6e3ba;border-left-color:var(--warn);color:#7a4a08}
+.status.status--warn{background:var(--warn-bg);border-color:#e9d19b;border-left-color:var(--warn);color:var(--warn)}
 .status.status--ok{background:var(--success-bg);border-color:#bdeed7;border-left-color:var(--success);color:#065f37}
 .status-list{margin:0;padding:0;list-style:none}
 .status-list li{position:relative;padding-left:13px}
@@ -148,49 +245,21 @@ button{border:0;border-radius:var(--radius-sm);padding:0 16px;min-height:40px;cu
 
 /* ---------- Claim / new expense layout ---------- */
 .claim-common-grid{
-  display:grid;grid-template-columns:1fr 1fr;gap:14px;
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;
 }
-.claim-secondary-grid{
-  display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;
-}
-.new-expense-fields{
-  margin-top:20px;padding:16px 16px 2px;border-radius:var(--radius);background:#f8fafc;border:1px solid var(--border);
-}
-.subsection-label{
-  font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
-  color:var(--navy-2);margin-bottom:12px;display:flex;align-items:center;gap:6px;
-}
-.subsection-label svg{width:13px;height:13px;opacity:.75}
 .new-expense-grid{
   display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,.85fr) minmax(0,1.35fr);
-  gap:14px;align-items:end;
+  gap:16px;align-items:end;
+}
+.currency-row{
+  display:grid;grid-template-columns:150px minmax(0,1fr) minmax(0,1fr);
+  gap:16px;align-items:end;margin-top:16px;
 }
 
-/* ---------- Quick expense bar ---------- */
-.quick-expense-bar{
-  margin-top:14px;padding:14px 16px;border:1px solid var(--border);border-radius:var(--radius);
-  background:linear-gradient(180deg,#fbfcfe,#f6f8fb);display:grid;
-  grid-template-columns:minmax(220px,1fr) 140px 160px 180px minmax(360px,auto);
-  gap:10px;align-items:end;
-}
-.quick-expense-title{display:flex;align-items:center;gap:10px;min-width:0;align-self:center}
-.quick-expense-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;background:var(--accent-soft);color:var(--accent);flex:0 0 34px}
-.quick-title{font-size:12.5px;font-weight:800;color:var(--navy)}
-.quick-subtitle{font-size:10.5px;color:var(--muted);margin-top:2px;line-height:1.35}
-.quick-field{min-width:0;display:block}
-.quick-field label{display:block;font-size:11px;font-weight:600;color:#374253;margin-bottom:5px;white-space:nowrap}
-.quick-field input,.quick-field select{min-height:40px;background:#fff;width:100%;box-sizing:border-box}
-.quick-inr input{font-weight:700;background:#eef2f7}
-.quick-inr input:not([readonly]){background:#fff;font-weight:400}
-.quick-helper{font-size:9.5px;color:var(--muted);margin-top:4px;line-height:1.3;min-height:14px;white-space:normal}
-.quick-helper.field-error{color:var(--danger);font-weight:600}
-.quick-actions{display:flex;gap:8px;align-items:end;justify-content:flex-end;min-width:0;box-sizing:border-box}
-.quick-actions button{height:40px;white-space:nowrap;flex:0 0 auto}
 .quick-top-error{
-  flex:1 1 100%;
-  margin-top:0;
+  margin-top:14px;
   padding:9px 12px;
-  border:1px solid #f4cac4;
+  border:1px solid #eecac4;
   border-radius:var(--radius-sm);
   background:var(--danger-bg);
   color:var(--danger);
@@ -201,15 +270,35 @@ button{border:0;border-radius:var(--radius-sm);padding:0 16px;min-height:40px;cu
 .quick-top-error svg{width:14px;height:14px;flex:0 0 14px}
 .quick-top-error[hidden]{display:none}
 
-.validation{font-size:11px;margin-top:4px;color:var(--danger);min-height:14px;font-weight:500}
-.amount-invalid{border-color:#d92d20!important;background:#fffafa}
+/* ---------- Receipt staging (New Expense section) ---------- */
+.receipt-stage{margin-top:18px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:stretch}
+.receipt-dropzone{
+  display:flex;align-items:center;gap:14px;padding:14px 16px;border:1.5px dashed var(--border-strong);
+  border-radius:var(--radius);background:var(--bg);
+}
+.receipt-dropzone-icon{
+  width:38px;height:38px;border-radius:9px;flex:0 0 38px;background:var(--surface);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;color:var(--gold-deep);
+}
+.receipt-dropzone-icon svg{width:18px;height:18px}
+.receipt-dropzone-copy{min-width:0;flex:1}
+.receipt-dropzone-title{font-size:13px;font-weight:700;color:var(--ink)}
+.receipt-dropzone-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.receipt-dropzone-btn{flex:0 0 auto}
+.receipt-stage-add{align-self:stretch;min-width:190px}
+.pending-receipt-items{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 
-.header-brand{display:flex;align-items:center;justify-content:space-between;gap:18px}
-.header-brand-copy{min-width:0}
-.header-brand-name{font-size:10px;font-weight:800;letter-spacing:.18em;opacity:.82;margin-top:2px}
-.header-logo{width:44px;height:44px;object-fit:contain;display:block;flex:0 0 44px;background:rgba(255,255,255,.94);border-radius:10px;padding:6px;box-shadow:var(--shadow-sm)}
-.header-rule{height:1px;background:rgba(255,255,255,.14);margin:16px 0 15px}
-.receipt-item{display:flex;align-items:center;gap:8px;border:1px solid var(--border);background:#fbfcfe;border-radius:var(--radius-sm);padding:6px;transition:border-color .12s,box-shadow .12s}
+/* ---------- Buttons: hidden native file input pattern (used by staging + per-row upload) ---------- */
+.hidden-file-input{
+  position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+  clip:rect(0,0,0,0);white-space:nowrap;border:0;
+}
+.add-receipts-btn{cursor:pointer;flex:0 0 auto}
+
+.validation{font-size:11px;margin-top:4px;color:var(--danger);min-height:14px;font-weight:500}
+.amount-invalid{border-color:var(--danger)!important;background:var(--danger-bg)}
+
+.receipt-item{display:flex;align-items:center;gap:8px;border:1px solid var(--border);background:var(--surface);border-radius:var(--radius-sm);padding:6px;transition:border-color .12s,box-shadow .12s}
 .receipt-item:hover{border-color:var(--border-strong);box-shadow:var(--shadow-sm)}
 .receipt-item .receipt-thumb{width:42px;height:48px;flex-basis:42px}
 .receipt-item-info{min-width:70px;max-width:135px}
@@ -218,11 +307,11 @@ button{border:0;border-radius:var(--radius-sm);padding:0 16px;min-height:40px;cu
 /* ---------- Table ---------- */
 .table-wrap{overflow-x:auto;overflow-y:visible;margin-top:16px;-webkit-overflow-scrolling:touch;border:1px solid var(--border);border-radius:var(--radius)}
 table{width:100%;border-collapse:collapse;min-width:1540px;table-layout:fixed}
-th{background:var(--navy);color:#fff;font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;text-align:left;padding:11px 10px;border:0;border-bottom:1px solid rgba(255,255,255,.14);white-space:normal}
+th{background:var(--zoos-black);color:var(--zoos-white);font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;text-align:left;padding:11px 10px;border:0;border-bottom:2px solid var(--gold);white-space:normal}
 thead tr th:first-child{border-top-left-radius:var(--radius)}
 thead tr th:last-child{border-top-right-radius:var(--radius)}
 td{border:0;border-bottom:1px solid var(--border);padding:9px 10px;font-size:12.5px;vertical-align:top}
-tbody tr:hover td{background:#f9fafc}
+tbody tr:hover td{background:var(--bg)}
 tbody tr:last-child td{border-bottom:0}
 td input,td select{min-height:34px;padding:5px 8px;border-radius:6px;font-size:12.5px}
 #expenseTable th:nth-child(1),#expenseTable td:nth-child(1){width:42px;color:var(--muted);font-weight:600}
@@ -239,21 +328,14 @@ td input,td select{min-height:34px;padding:5px 8px;border-radius:6px;font-size:1
 
 .receipt-cell{min-width:0}
 .receipt-upload-row{display:flex;align-items:center;gap:8px;flex-wrap:nowrap}
-/* Native file input stays fully functional (keyboard + label click) but is
-   visually hidden — the "+ Add" label is the only control the user sees. */
-.receipt-upload-row input[type="file"]{
-  position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
-  clip:rect(0,0,0,0);white-space:nowrap;border:0;
-}
-.add-receipts-btn{cursor:pointer;flex:0 0 auto}
 .receipt-items{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}
 .receipt-name{display:block;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10.5px;color:var(--ink);font-weight:500;margin-top:1px}
 .receipt-kind{display:flex;align-items:center;gap:3px;font-size:9.5px;color:var(--success);font-weight:700;margin-top:2px}
 .receipt-kind svg{width:11px;height:11px;flex:0 0 11px}
-.receipt-kind.is-pdf{color:var(--navy-3)}
-.receipt-thumb{width:44px;height:50px;border:1px solid var(--border-strong);border-radius:6px;object-fit:cover;background:#f8fafc;display:block;cursor:zoom-in;flex:0 0 44px;padding:0;transition:box-shadow .12s,border-color .12s}
-.receipt-thumb:hover{border-color:var(--accent);box-shadow:0 0 0 3px rgba(47,111,224,.14)}
-.receipt-pdf-thumb{object-fit:contain;padding:2px;background:#f8fafc}
+.receipt-kind.is-pdf{color:var(--gold-deep)}
+.receipt-thumb{width:44px;height:50px;border:1px solid var(--border-strong);border-radius:6px;object-fit:cover;background:var(--bg);display:block;cursor:zoom-in;flex:0 0 44px;padding:0;transition:box-shadow .12s,border-color .12s}
+.receipt-thumb:hover{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,168,76,.18)}
+.receipt-pdf-thumb{object-fit:contain;padding:2px;background:var(--bg)}
 .receipt-preview-error{display:block;font-size:9.5px;color:var(--danger);max-width:150px;line-height:1.3;margin-top:2px}
 .receipt-page-count{display:block;font-size:9.5px;color:var(--muted);margin-top:2px}
 .receipt-empty{width:44px;height:44px;border:1px dashed var(--border-strong);border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--muted-2);font-size:8px;text-align:center;flex:0 0 44px;padding:2px}
@@ -266,7 +348,7 @@ td input,td select{min-height:34px;padding:5px 8px;border-radius:6px;font-size:1
 .remove-receipt svg{width:12px;height:12px}
 .receipt-empty-required{
   display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;
-  color:var(--danger);background:var(--danger-bg);border:1px solid #f4cac4;
+  color:var(--danger);background:var(--danger-bg);border:1px solid #eecac4;
   border-radius:999px;padding:5px 10px;
 }
 .receipt-empty-required svg{width:12px;height:12px;flex:0 0 12px}
@@ -274,19 +356,28 @@ td input,td select{min-height:34px;padding:5px 8px;border-radius:6px;font-size:1
 .currency-box{min-width:112px}.inr-box{min-width:150px}
 .field-help{font-size:10px;color:var(--muted);margin-top:3px}
 
-/* ---------- Summary ---------- */
+/* ---------- Summary & actions ---------- */
 .summary-wrap{margin-top:18px;display:flex;justify-content:flex-end}
 .summary{width:min(100%,420px);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
 .summary table{min-width:0;table-layout:auto}
 .summary td{font-size:13px;padding:9px 13px;border-bottom:1px solid var(--border)}
 .summary tr:last-child td{border-bottom:0}
 .summary td:last-child{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
-.summary tr.total-row td{background:var(--navy);color:#fff;font-size:13.5px}
+.summary tr.total-row td{background:var(--zoos-black);color:var(--gold-bright);font-size:13.5px}
+
+.summary-actions-bar{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  margin-top:18px;padding-top:18px;border-top:1px solid var(--border);
+}
+.total-figure-label{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.total-figure-value{font-family:var(--font-display);font-size:30px;color:var(--gold-deep);font-weight:400;line-height:1.1;margin-top:2px}
+.summary-actions-buttons{display:flex;gap:10px;flex-wrap:wrap}
 
 .note{font-size:11.5px;color:var(--muted);margin-top:16px;line-height:1.6;border-top:1px solid var(--border);padding-top:14px}
 
-.empty{padding:40px 20px;text-align:center;color:var(--muted);font-size:13px}
-.empty strong{display:block;color:var(--ink);font-size:14px;margin-bottom:4px}
+.empty{padding:44px 20px;text-align:center;color:var(--muted);font-size:13px}
+.empty svg{width:30px;height:30px;color:var(--gold);margin-bottom:10px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.empty strong{display:block;color:var(--ink);font-size:14px;margin-bottom:4px;font-family:var(--font-body)}
 
 .icon{width:15px;height:15px;display:inline-block;vertical-align:-3px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .icon-only{margin:0;width:16px;height:16px}
@@ -294,36 +385,33 @@ td input,td select{min-height:34px;padding:5px 8px;border-radius:6px;font-size:1
 /* ---------- Lightbox ---------- */
 .lightbox{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:32px}
 .lightbox[hidden]{display:none}
-.lightbox-backdrop{position:absolute;inset:0;background:rgba(16,24,40,.72)}
-.lightbox-content{position:relative;max-width:90vw;max-height:90vh;background:#fff;border-radius:8px;padding:8px;box-shadow:var(--shadow-md)}
+.lightbox-backdrop{position:absolute;inset:0;background:rgba(10,10,10,.72)}
+.lightbox-content{position:relative;max-width:90vw;max-height:90vh;background:var(--surface);border-radius:8px;padding:8px;box-shadow:var(--shadow-md)}
 .lightbox-content img{display:block;max-width:100%;max-height:82vh;border-radius:4px}
-.lightbox-close{position:absolute;top:-14px;right:-14px;width:32px;height:32px;border-radius:50%;background:var(--navy);color:#fff;font-size:16px;line-height:1;padding:0}
+.lightbox-close{position:absolute;top:-14px;right:-14px;width:32px;height:32px;border-radius:50%;background:var(--zoos-black);color:var(--zoos-white);font-size:16px;line-height:1;padding:0}
 
-@media(max-width:1200px) and (min-width:1001px){
-  .quick-expense-bar{grid-template-columns:minmax(190px,1fr) 140px 155px 190px auto;gap:10px}
-  .quick-actions{gap:6px}
-  .quick-actions button{padding:0 11px}
-}
 @media(max-width:1000px){
-  .claim-common-grid,.claim-secondary-grid{grid-template-columns:1fr 1fr}
+  .claim-common-grid{grid-template-columns:1fr 1fr}
   .new-expense-grid{grid-template-columns:1fr 1fr}
   .new-expense-grid .field:last-child{grid-column:1/-1}
-  .quick-expense-bar{grid-template-columns:minmax(200px,1fr) repeat(2,minmax(130px,1fr))}
-  .quick-inr{grid-column:1}
-  .quick-actions{grid-column:2/-1;justify-content:flex-start;margin-top:0}
+  .currency-row{grid-template-columns:1fr 1fr}
+  .receipt-stage{grid-template-columns:1fr}
+  .receipt-stage-add{min-width:0}
 }
 @media(max-width:600px){
-  .claim-common-grid,.claim-secondary-grid,.new-expense-grid{grid-template-columns:1fr}
+  .claim-common-grid,.new-expense-grid,.currency-row{grid-template-columns:1fr}
   .new-expense-grid .field:last-child{grid-column:auto}
-  .receipt-files{max-height:none}
   .receipt-item{max-width:100%}
-  .quick-expense-bar{grid-template-columns:1fr;align-items:stretch}
-  .quick-expense-title,.quick-field,.quick-actions{width:100%}
-  .quick-actions{grid-column:1;flex-direction:column;align-items:stretch;padding-bottom:0}
-  .quick-actions button{width:100%}
+  .receipt-dropzone{flex-direction:column;align-items:flex-start}
+  .receipt-dropzone-btn{width:100%}
   .app{margin-top:12px;padding:0 10px}
   .summary-wrap{justify-content:stretch}
   .summary{width:100%}
+  .summary-actions-bar{flex-direction:column;align-items:stretch}
+  .summary-actions-buttons{flex-direction:column}
+  .summary-actions-buttons button{width:100%}
+  .header{flex-direction:column}
+  .header-actions{align-self:flex-end}
 }
 
 /* ---------- Print ---------- */
@@ -344,36 +432,42 @@ td input,td select{min-height:34px;padding:5px 8px;border-radius:6px;font-size:1
  #printPreview{display:block!important}
  .print-form{display:block;width:100%;max-width:100%;overflow:visible}
 
- /* Letterhead — "ZOOS GLOBAL" sits on its own line below the org/title row */
- .print-letterhead{position:relative;overflow:hidden;background:#f7f9fc;border:1px solid #d9dee7;border-radius:5px;border-bottom:3px solid #132a46;padding:7px 10px;margin-bottom:8px;display:block}
+ /* Letterhead — flat and minimal: no card/box, just a thin gold rule.
+    "ZOOS GLOBAL" sits on its own line below the org/title row. */
+ .print-letterhead{background:#fff;border:0;border-bottom:2px solid #C9A84C;padding:0 0 6px;margin-bottom:7px;display:block}
  .print-letterhead-main{display:flex;align-items:center;justify-content:space-between;gap:10px}
  .print-brand{display:flex;align-items:center;gap:7px;min-width:0}
- .print-logo{width:31px;height:31px;object-fit:contain;background:#132a46;border-radius:4px;padding:2px;flex:0 0 auto}
- .print-title-line{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:3px;white-space:nowrap;min-width:0}
+ .print-logo{width:26px;height:26px;object-fit:contain;background:#0A0A0A;border-radius:3px;padding:2px;flex:0 0 auto}
+ .print-title-line{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;white-space:nowrap;min-width:0}
  .print-title-primary{display:flex;align-items:center;gap:6px;white-space:nowrap}
- .print-org-name{font-size:11px;line-height:1;font-weight:800;color:#132a46;letter-spacing:.01em}
- .print-title-divider{font-size:11px;line-height:1;color:#98a2b3;font-weight:600}
- .print-doc-title{font-size:10.5px;line-height:1;font-weight:800;color:#132a46;letter-spacing:.035em;text-transform:uppercase;white-space:nowrap}
- .print-org-brand{display:block;margin:0;font-size:7px;line-height:1;color:#667085;font-weight:800;letter-spacing:.14em;text-transform:uppercase;white-space:nowrap}
- .print-doc-badge{display:inline-block;flex:0 0 auto;margin:0;padding:3px 7px;border-radius:9px;font-size:6.5px;font-weight:700;color:#132a46;border:1px solid #c9d5e3;background:#fff;white-space:nowrap}
+ .print-org-name{font-size:11px;line-height:1;font-weight:800;color:#0A0A0A;letter-spacing:.01em}
+ .print-title-divider{font-size:11px;line-height:1;color:#888;font-weight:600}
+ .print-doc-title{font-size:10px;line-height:1;font-weight:700;color:#0A0A0A;letter-spacing:.03em;text-transform:uppercase;white-space:nowrap}
+ .print-org-brand{display:block;margin:0;font-size:7px;line-height:1;color:#9B7A2F;font-weight:800;letter-spacing:.14em;text-transform:uppercase;white-space:nowrap}
 
- .print-claim-strip{display:grid;grid-template-columns:1fr 1fr 1fr;margin:6px 0 0;border:1px solid #d9dee7;border-radius:4px;overflow:hidden;background:#fff}
- .print-claim-strip .strip-item{padding:4px 6px;border-right:1px solid #d9dee7}
- .print-claim-strip .strip-item:last-child{border-right:0}
- .print-claim-strip span{display:block;font-size:6px;color:#667085;text-transform:uppercase;letter-spacing:.05em;margin-bottom:1px}
- .print-claim-strip strong{font-size:8px;color:#101828}
+ /* Document summary strip — flat, thin vertical dividers, no boxed card */
+ .print-claim-strip{display:grid;grid-template-columns:1fr 1fr 1fr;margin:6px 0 0}
+ .print-claim-strip .strip-item{padding:0 10px;border-left:1px solid #e4e4e4}
+ .print-claim-strip .strip-item:first-child{padding-left:0;border-left:0}
+ .print-claim-strip span{display:block;font-size:6px;color:#888;text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-bottom:2px}
+ .print-claim-strip strong{font-size:8.5px;color:#1A1A1A;font-weight:700}
+ .print-claim-strip .strip-total strong{font-size:11.5px;color:#0A0A0A;font-weight:800}
 
- .print-section-label{font-size:8px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#132a46;margin:8px 0 4px;padding-bottom:3px;border-bottom:1px solid #d9dee7}
+ .print-section-label{font-size:8px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#0A0A0A;margin:7px 0 4px;padding-bottom:3px;border-bottom:1px solid #C9A84C}
  .print-section-label:first-of-type{margin-top:0}
 
- .meta{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:5px}
- .meta-item{background:#f8fafc;border:1px solid #e4e7ec;border-radius:3px;padding:4px 6px}
- .meta-item span{display:block;color:#667085;font-size:6px;text-transform:uppercase;letter-spacing:.35px;margin-bottom:1px}
- .meta-item strong{display:block;color:#101828;font-size:8px}
+ /* Employee information — flat four-column strip, thin grey dividers, no cards */
+ .meta{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:0}
+ .meta-item{padding:0 10px;border-left:1px solid #e4e4e4}
+ .meta-item:first-child{padding-left:0;border-left:0}
+ .meta-item span{display:block;color:#888;font-size:6px;text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-bottom:2px}
+ .meta-item strong{display:block;color:#1A1A1A;font-size:8.5px;font-weight:700}
+
+ .print-receipt-notice{border:1px solid #e4e4e4;border-left:2px solid #C9A84C;background:#F9F6F0;padding:6px 9px;font-size:7.5px;color:#1A1A1A;line-height:1.5}
 
  /* Expense table — column 2 (Date) never wraps; column 4 (Description) may wrap */
  .print-table{width:100%;max-width:100%;min-width:0;box-sizing:border-box;border-collapse:separate;border-spacing:0;font-size:7.2px;table-layout:fixed;border:1px solid #cfd4dc;border-radius:5px;overflow:hidden}
- .print-table th{background:#132a46!important;color:#fff!important;padding:4px 3px;border:0;border-right:1px solid rgba(255,255,255,.18);font-size:6.4px;letter-spacing:.015em;text-align:left;white-space:normal;overflow-wrap:anywhere;word-break:normal;box-sizing:border-box}
+ .print-table th{background:#0A0A0A!important;color:#fff!important;padding:4px 3px;border:0;border-right:1px solid rgba(255,255,255,.15);border-bottom:2px solid #C9A84C;font-size:6.4px;letter-spacing:.015em;text-align:left;white-space:normal;overflow-wrap:anywhere;word-break:normal;box-sizing:border-box}
  .print-table th:last-child{border-right:0}
  .print-table td{padding:3px 3px;border:0;border-right:1px solid #d9dee7;border-top:1px solid #d9dee7;box-sizing:border-box;min-width:0;overflow-wrap:anywhere;word-break:break-word;vertical-align:top}
  .print-table td:last-child{border-right:0}
@@ -396,7 +490,7 @@ td input,td select{min-height:34px;padding:5px 8px;border-radius:6px;font-size:1
  .print-summary td{border:0;border-top:1px solid #d9dee7;padding:3px 5px;min-width:0;overflow-wrap:anywhere;font-size:7px}
  .print-summary tr:first-child td{border-top:0}
  .print-summary td:last-child{text-align:right;font-weight:700}
- .print-summary tr.total-row td{background:#132a46!important;color:#fff!important;font-size:9.5px;font-weight:700}
+ .print-summary tr.total-row td{background:#0A0A0A!important;color:#fff!important;font-size:9.5px;font-weight:700;border-top:2px solid #C9A84C!important}
 
  .receipt-page{break-before:page;page-break-before:always;max-width:100%;width:100%;overflow:hidden}
  .receipt-page img,.receipt-page canvas{max-width:100%;height:auto}
@@ -495,93 +589,160 @@ td input,td select{min-height:34px;padding:5px 8px;border-radius:6px;font-size:1
 <body>
 <div class="app" id="app">
   <div class="header">
-    <div class="header-brand">
-      <div class="header-brand-copy">
-        <div class="header-kicker">Style E-Trademark Pvt. Ltd.</div>
-        <div class="header-brand-name">ZOOS GLOBAL</div>
-      </div>
-      <img class="header-logo" src="https://crm.zoosglobal.com/favicon.png" alt="Zoos Global logo">
+    <div class="header-main">
+      <img class="header-logo-mark" src="https://crm.zoosglobal.com/favicon.png" alt="Zoos Global logo">
+      <div class="header-wordmark">ZOOS<span>GLOBAL</span></div>
     </div>
-    <div class="header-rule"></div>
-    <h1>Employee Reimbursement PDF Generator</h1>
-    <p>Browser-only reimbursement builder with month/date selectors, INR/USD conversion, image &amp; PDF receipts, and an ordered, letterhead-style PDF export. No server required.</p>
+    <div class="header-copy">
+      <div class="header-kicker">Style E-Trademark Pvt. Ltd.</div>
+      <h1>Employee Reimbursement PDF Generator</h1>
+      <p>Browser-only reimbursement builder with month/date selectors, INR/USD conversion, image &amp; PDF receipts, and an ordered, letterhead-style PDF export. No server required.</p>
+    </div>
+    <div class="header-actions">
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode" title="Toggle dark mode">
+        <svg id="themeToggleIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      </button>
+      <div class="user-avatar" id="userAvatar" title="Employee">—</div>
+    </div>
   </div>
 
   <section class="panel">
-    <div class="section-label">Claim details</div>
+    <div class="section-heading">
+      <div class="section-heading-copy">
+        <div class="section-number">01</div>
+        <div>
+          <div class="section-title">Claim Details</div>
+          <div class="section-subtitle">Enter the basic details for this reimbursement claim.</div>
+        </div>
+      </div>
+    </div>
 
     <div class="claim-common-grid">
-      <div class="field"><label for="employee">Employee Name</label><input id="employee" autocomplete="name"></div>
-      <div class="field"><label for="department">Department</label>
-        <select id="department">
-          <option value="" selected disabled>Select department</option>
-          <option value="Sales">Sales</option>
-          <option value="Tech">Tech</option>
-          <option value="Finance">Finance</option>
-        </select>
+      <div class="field">
+        <label for="employee">Employee Name</label>
+        <div class="field-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.5-7 8-7s8 3 8 7"/></svg>
+          <input id="employee" autocomplete="name" placeholder="Enter employee name">
+        </div>
       </div>
-    </div>
-
-    <div class="claim-secondary-grid">
-      <div class="field"><label for="claimMonth">Claim Month</label><input id="claimMonth" placeholder="MM-YYYY" autocomplete="off"></div>
+      <div class="field">
+        <label for="department">Department</label>
+        <div class="field-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M2.5 20c0-3.3 2.9-6 6.5-6s6.5 2.7 6.5 6"/><circle cx="17.5" cy="8.3" r="2.3"/><path d="M15.8 14.4c2.6.5 4.5 2.6 4.7 5.6"/></svg>
+          <select id="department" autocomplete="off" name="employee-department">
+            <option value="" selected disabled>Select department</option>
+            <option value="Sales">Sales</option>
+            <option value="Tech">Tech</option>
+            <option value="Finance">Finance</option>
+          </select>
+        </div>
+      </div>
+      <div class="field"><label for="claimMonth">Claim Month</label><input id="claimMonth" class="filter-date" placeholder="MM-YYYY" autocomplete="off"></div>
       <div class="field"><label for="submissionDate">Submission Date</label><input id="submissionDate" class="filter-date" placeholder="DD-MM-YYYY" autocomplete="off"></div>
     </div>
+  </section>
 
-    <div class="new-expense-fields">
-      <div class="subsection-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16.5" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg>New expense details</div>
-      <div class="new-expense-grid">
-        <div class="field"><label for="categoryFilter">Category</label>
-          <select id="categoryFilter"><option value="">Select category</option></select>
-        </div>
-        <div class="field"><label for="dateFilter">Expense Date</label><input id="dateFilter" class="filter-date" placeholder="DD-MM-YYYY" autocomplete="off"></div>
-        <div class="field"><label for="descriptionFilter">Description / Business Purpose</label><input id="descriptionFilter" placeholder="e.g. Hotel stay / client travel" autocomplete="off"></div>
-      </div>
-    </div>
-
-    <div class="quick-expense-bar">
-      <div class="quick-expense-title">
-        <span class="quick-expense-icon">
-          <svg class="icon icon-only" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-        </span>
+  <section class="panel section-panel">
+    <div class="section-heading">
+      <div class="section-heading-copy">
+        <div class="section-number">02</div>
         <div>
-          <div class="quick-title">New Expense</div>
-          <div class="quick-subtitle">Date, category and description are set above; enter the amount and currency here.</div>
+          <div class="section-title">New Expense Details</div>
+          <div class="section-subtitle">Add a new expense. Click &ldquo;Add Expense&rdquo; to include it in your list.</div>
         </div>
       </div>
-
-      <div class="quick-field quick-currency">
-        <label for="quickCurrency">Currency</label>
-        <select id="quickCurrency">
-          <option value="INR">INR (₹)</option>
-          <option value="USD">USD ($)</option>
-        </select>
-        <div class="quick-helper">&nbsp;</div>
-      </div>
-
-      <div class="quick-field quick-amount">
-        <label for="quickAmount">Amount</label>
-        <input id="quickAmount" type="number" min="0.01" step="0.01" placeholder="Enter amount">
-        <div class="validation" id="quickAmountError"></div>
-      </div>
-
-      <div class="quick-field quick-inr">
-        <label for="quickInrAmount">INR Amount</label>
-        <input id="quickInrAmount" type="number" min="0.01" step="0.01" readonly placeholder="Calculated">
-        <div class="quick-helper" id="quickInrHelper">Same as amount (INR).</div>
-      </div>
-
-      <div class="quick-actions">
-        <button class="primary btn-icon" id="addRow" type="button">
-          <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add Expense
+      <div class="section-heading-action">
+        <button class="secondary btn-icon" id="clearNewExpense" type="button">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M20 11A8 8 0 1 0 19 15"/><path d="M20 5v6h-6"/></svg>Clear Fields
         </button>
       </div>
     </div>
+
+    <div class="new-expense-grid">
+      <div class="field">
+        <label for="categoryFilter">Category</label>
+        <div class="field-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L2.5 12.5V4A1.5 1.5 0 0 1 4 2.5h8.5l8.1 8.1a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.25"/></svg>
+          <select id="categoryFilter"><option value="">Select category</option></select>
+        </div>
+      </div>
+      <div class="field"><label for="dateFilter">Expense Date</label><input id="dateFilter" class="filter-date" placeholder="DD-MM-YYYY" autocomplete="off"></div>
+      <div class="field"><label for="descriptionFilter">Description / Business Purpose</label><input id="descriptionFilter" placeholder="e.g. Hotel stay / client travel" autocomplete="off"></div>
+    </div>
+
+    <div class="currency-row">
+      <div class="field">
+        <label for="quickCurrency">Currency</label>
+        <div class="field-icon-wrap">
+          <span class="field-flag" id="quickCurrencyFlag" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="18" height="18">
+              <circle cx="12" cy="12" r="10" fill="#fff"/>
+              <path d="M2 8.2A10 10 0 0 1 22 8.2z" fill="#FF9933"/>
+              <path d="M2 15.8A10 10 0 0 0 22 15.8z" fill="#138808"/>
+              <circle cx="12" cy="12" r="2.1" fill="none" stroke="#0b3d91" stroke-width="0.6"/>
+              <circle cx="12" cy="12" r="0.5" fill="#0b3d91"/>
+            </svg>
+          </span>
+          <select id="quickCurrency" autocomplete="off" name="quick-currency-code">
+            <option value="INR">INR (₹)</option>
+            <option value="USD">USD ($)</option>
+          </select>
+        </div>
+        <div class="quick-helper">&nbsp;</div>
+      </div>
+      <div class="field">
+        <label for="quickAmount">Amount</label>
+        <div class="field-icon-wrap">
+          <span class="field-icon-char" id="quickAmountSymbol" aria-hidden="true">₹</span>
+          <input id="quickAmount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="Enter amount">
+        </div>
+        <div class="validation" id="quickAmountError"></div>
+      </div>
+      <div class="field">
+        <label for="quickInrAmount">INR Amount</label>
+        <div class="field-icon-wrap">
+          <span class="field-icon-char" aria-hidden="true">₹</span>
+          <input id="quickInrAmount" type="number" min="0.01" step="0.01" inputmode="decimal" readonly placeholder="Calculated">
+        </div>
+        <div class="quick-helper" id="quickInrHelper">Same as amount (INR).</div>
+      </div>
+    </div>
+
+    <div id="newExpenseErrorSlot"></div>
+
+    <div class="receipt-stage">
+      <div class="receipt-dropzone">
+        <div class="receipt-dropzone-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l5 5v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h6"/></svg>
+        </div>
+        <div class="receipt-dropzone-copy">
+          <div class="receipt-dropzone-title">Add Receipts</div>
+          <div class="receipt-dropzone-sub">Upload image or PDF files (JPG, PNG, PDF, WEBP)</div>
+        </div>
+        <input id="pendingReceiptFile" class="hidden-file-input" type="file" multiple accept="image/*,.pdf,application/pdf">
+        <label class="secondary btn-icon receipt-dropzone-btn add-receipts-btn" for="pendingReceiptFile">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>Choose Files
+        </label>
+      </div>
+      <button class="primary btn-icon receipt-stage-add" id="addRow" type="button">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add Expense
+      </button>
+    </div>
+    <div class="pending-receipt-items" id="pendingReceiptItems"></div>
 
     <div class="status" id="status" role="status" aria-live="polite"></div>
   </section>
 
   <section class="panel section-panel">
-    <div class="section-label">Expenses</div>
+    <div class="section-heading">
+      <div class="section-heading-copy">
+        <div class="section-number">03</div>
+        <div>
+          <div class="section-title">Expenses</div>
+          <div class="section-subtitle">Review, edit or remove added expenses.</div>
+        </div>
+      </div>
+    </div>
     <div class="table-wrap">
       <table id="expenseTable">
         <thead>
@@ -597,10 +758,31 @@ td input,td select{min-height:34px;padding:5px 8px;border-radius:6px;font-size:1
     <div class="summary-wrap">
       <div class="summary"><table><tbody id="summaryBody"></tbody></table></div>
     </div>
-    <div class="table-actions">
-      <button class="primary btn-icon pdf-primary" id="generatePdf" type="button">
-        <svg class="icon" viewBox="0 0 24 24"><path d="M6 9V3h12v6M6 18H4a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-2"/><path d="M6 14h12v7H6z"/></svg>Generate PDF / Print
-      </button>
+  </section>
+
+  <section class="panel section-panel">
+    <div class="section-heading">
+      <div class="section-heading-copy">
+        <div class="section-number">04</div>
+        <div>
+          <div class="section-title">Summary &amp; Actions</div>
+          <div class="section-subtitle">Review total and generate reimbursement PDF.</div>
+        </div>
+      </div>
+    </div>
+    <div class="summary-actions-bar">
+      <div>
+        <div class="total-figure-label">Total INR Amount</div>
+        <div class="total-figure-value" id="totalFigure">₹ 0.00</div>
+      </div>
+      <div class="summary-actions-buttons">
+        <button class="secondary btn-icon" id="previewPrintBtn" type="button">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M6 9V3h12v6M6 18H4a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-2"/><path d="M6 14h12v7H6z"/></svg>Preview &amp; Print
+        </button>
+        <button class="dark-solid btn-icon pdf-primary" id="generatePdf" type="button">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>Generate PDF
+        </button>
+      </div>
     </div>
     <div class="note">
       <strong>Currency rule:</strong> for INR expenses, the INR Amount is always the same as the amount entered. For USD
@@ -631,6 +813,9 @@ td input,td select{min-height:34px;padding:5px 8px;border-radius:6px;font-size:1
   let nextId = 1;
   let isGenerating = false;
   const expenses = [];
+  // Receipts staged in the "New Expense" section before "Add Expense" is
+  // clicked. They become part of the new expense's receipts[] on creation.
+  const pendingReceipts = [];
 
   // "Stay" is kept as the row-level category (matches the reference form) but rolls
   // up into the "Hotel Stay" bucket for category totals, matching the reference summary.
@@ -663,8 +848,15 @@ td input,td select{min-height:34px;padding:5px 8px;border-radius:6px;font-size:1
   function categoryOptions(selected){
     return categories.map(c=>`<option ${c===selected?'selected':''}>${escapeHtml(c)}</option>`).join('');
   }
+  // Native <option> elements can only render plain text, so the flag icon
+  // (an SVG, for consistent cross-platform rendering) lives outside the
+  // Currency <select> as an overlay — see quickCurrencyFlag / updateCurrencyFlag.
+  function currencyLabel(c){
+    const symbol=c==='INR'?'₹':c==='USD'?'$':'';
+    return `${c}${symbol?` (${symbol})`:''}`;
+  }
   function currencyOptions(selected){
-    return currencies.map(c=>`<option ${c===selected?'selected':''}>${c}</option>`).join('');
+    return currencies.map(c=>`<option value="${c}" ${c===selected?'selected':''}>${currencyLabel(c)}</option>`).join('');
   }
 
   // ---------- Shared inline icons (consistent stroke-based icon set) ----------
@@ -672,6 +864,11 @@ td input,td select{min-height:34px;padding:5px 8px;border-radius:6px;font-size:1
   const ICON_PDF='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>';
   const ICON_TRASH='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/><path d="M10 11v6M14 11v6"/></svg>';
   const ICON_X='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+  const ICON_FOLDER='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
+  // Inline SVG (not emoji) so the currency flag renders identically on every
+  // OS/browser, instead of depending on flag-emoji font support.
+  const ICON_FLAG_INR='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#fff"/><path d="M2 8.2A10 10 0 0 1 22 8.2z" fill="#FF9933"/><path d="M2 15.8A10 10 0 0 0 22 15.8z" fill="#138808"/><circle cx="12" cy="12" r="2.1" fill="none" stroke="#0b3d91" stroke-width="0.6"/><circle cx="12" cy="12" r="0.5" fill="#0b3d91"/></svg>';
+  const ICON_FLAG_USD='<svg viewBox="0 0 24 24"><defs><clipPath id="usFlagClip"><circle cx="12" cy="12" r="10"/></clipPath></defs><g clip-path="url(#usFlagClip)"><rect x="2" y="2" width="20" height="20" fill="#fff"/><rect x="2" y="2" width="20" height="2.86" fill="#B22234"/><rect x="2" y="7.71" width="20" height="2.86" fill="#B22234"/><rect x="2" y="13.43" width="20" height="2.86" fill="#B22234"/><rect x="2" y="19.14" width="20" height="2.86" fill="#B22234"/><rect x="2" y="2" width="9" height="9" fill="#3C3B6E"/></g></svg>';
 
   function addExpense(data={}){
     const id=nextId++;
@@ -681,7 +878,7 @@ td input,td select{min-height:34px;padding:5px 8px;border-radius:6px;font-size:1
     expenses.push({
       id,date:data.date||'',category:data.category||'Travel',description:data.description||'',
       currency,amount,inrAmount:inrAmt,
-      receipts:[]
+      receipts:Array.isArray(data.receipts)?data.receipts.slice():[]
     });
     render();
   }
@@ -734,7 +931,7 @@ td input,td select{min-height:34px;padding:5px 8px;border-radius:6px;font-size:1
     expenses.forEach(dedupeReceipts);
     rowsEl.innerHTML='';
     if(!expenses.length){
-      rowsEl.innerHTML=`<tr><td colspan="9" class="empty"><strong>No expenses yet</strong>Add your first expense using the New Expense controls above.</td></tr>`;
+      rowsEl.innerHTML=`<tr><td colspan="9" class="empty">${ICON_FOLDER}<strong>No expenses added yet</strong>Add your first expense using the New Expense form above.</td></tr>`;
     } else {
       expenses.forEach((e,i)=>{
         const tr=document.createElement('tr');
@@ -747,7 +944,7 @@ td input,td select{min-height:34px;padding:5px 8px;border-radius:6px;font-size:1
           <td><input class="date filter-date" placeholder="DD-MM-YYYY" autocomplete="off" value="${escapeHtml(e.date)}"></td>
           <td><select class="cat">${categoryOptions(e.category)}</select></td>
           <td><input class="desc" value="${escapeHtml(e.description)}" placeholder="Business purpose"></td>
-          <td class="currency-box"><select class="currency">${currencyOptions(e.currency)}</select></td>
+          <td class="currency-box"><select class="currency" autocomplete="off" name="row-currency-code-${e.id}">${currencyOptions(e.currency)}</select></td>
           <td>
             <input class="amount ${invalid}" type="number" min="0.01" step="0.01" value="${e.amount||''}" placeholder="Required">
             <div class="validation amount-error">${escapeHtml(error)}</div>
@@ -761,7 +958,7 @@ td input,td select{min-height:34px;padding:5px 8px;border-radius:6px;font-size:1
           </td>
           <td class="receipt-cell">
             <div class="receipt-upload-row">
-              <input id="receipt-file-${e.id}" class="receipt" type="file" multiple accept="image/*,.pdf,application/pdf">
+              <input id="receipt-file-${e.id}" class="receipt hidden-file-input" type="file" multiple accept="image/*,.pdf,application/pdf">
               <label class="secondary btn-icon add-receipts-btn" for="receipt-file-${e.id}" title="Add receipts">
                 <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add
               </label>
@@ -803,7 +1000,24 @@ td input,td select{min-height:34px;padding:5px 8px;border-radius:6px;font-size:1
     if(all.includes(old))select.value=old;
   }
 
+  // Amounts must be a plain positive decimal. Number inputs still let a user
+  // type things like "20000--00999" through some browsers' loose in-progress
+  // validation, so strip anything that isn't a digit or a single decimal point
+  // as they type, rather than relying only on Number()'s fallback-to-0 later.
+  function sanitizeAmountInput(el){
+    if(!el) return;
+    const raw=el.value;
+    let cleaned=raw.replace(/[^0-9.]/g,'');
+    const firstDot=cleaned.indexOf('.');
+    if(firstDot!==-1){
+      cleaned=cleaned.slice(0,firstDot+1)+cleaned.slice(firstDot+1).replace(/\./g,'');
+    }
+    if(cleaned!==raw) el.value=cleaned;
+  }
+
   function updateFromRow(tr){
+    sanitizeAmountInput(tr.querySelector('.amount'));
+    sanitizeAmountInput(tr.querySelector('.inramt'));
     const id=Number(tr.dataset.id),e=expenses.find(x=>x.id===id);
     if(!e)return;
     e.date=tr.querySelector('.date').value.trim();
@@ -840,6 +1054,8 @@ td input,td select{min-height:34px;padding:5px 8px;border-radius:6px;font-size:1
     const ordered=[...new Set([...categories.filter(c=>totals[c]!=null),...Object.keys(totals).filter(c=>!categories.includes(c))])];
     summaryEl.innerHTML=ordered.map(c=>`<tr><td>${escapeHtml(c)}</td><td>${formatMoney(totals[c])}</td></tr>`).join('')+
       `<tr class="total-row"><td>Total</td><td>${formatMoney(total)}</td></tr>`;
+    const totalFigure=document.getElementById('totalFigure');
+    if(totalFigure) totalFigure.textContent=formatMoney(total);
   }
 
   function validateClaimDetails(){
@@ -910,6 +1126,69 @@ td input,td select{min-height:34px;padding:5px 8px;border-radius:6px;font-size:1
     const tr=e.target.closest('tr');if(tr)updateFromRow(tr);
   });
 
+  // Reads a batch of File objects (image or PDF) into receipt objects, generating
+  // a PDF.js preview where applicable. Shared by the New Expense staging upload
+  // and the per-row upload in the Expenses table so the logic exists in one place.
+  function processReceiptFiles(files){
+    const jobs=files.map(file=>new Promise(resolve=>{
+      const receipt={
+        id:'r_'+Date.now()+'_'+Math.random().toString(36).slice(2,10),
+        name:file.name,
+        type:(file.type==='application/pdf'||file.name.toLowerCase().endsWith('.pdf'))?'pdf':'image',
+        data:'',
+        preview:'',
+        pageCount:0,
+        previewError:''
+      };
+
+      const reader=new FileReader();
+      reader.onload=async()=>{
+        receipt.data=reader.result;
+
+        if(receipt.type==='pdf'){
+          try{
+            const preview=await makePdfFirstPagePreview(receipt.data);
+            receipt.preview=preview.data;
+            receipt.pageCount=preview.pages;
+          }catch(err){
+            receipt.preview='';
+            receipt.previewError='PDF preview unavailable';
+            console.warn('PDF receipt preview unavailable:',err);
+          }
+        }else{
+          receipt.preview=receipt.data;
+          receipt.pageCount=1;
+        }
+
+        resolve(receipt);
+      };
+
+      reader.onerror=()=>{
+        receipt.previewError='The receipt file could not be read.';
+        resolve(receipt);
+      };
+
+      reader.readAsDataURL(file);
+    }));
+
+    return Promise.all(jobs);
+  }
+
+  // Appends newReceipts onto target, skipping any that already match an
+  // existing entry by name+type+data (prevents re-adding the same file twice).
+  function mergeReceiptsDedup(target,newReceipts){
+    const existingKeys=new Set(
+      target.map(r=>`${r.name||''}::${r.type||''}::${r.data||''}`)
+    );
+    newReceipts.forEach(r=>{
+      const key=`${r.name||''}::${r.type||''}::${r.data||''}`;
+      if(!existingKeys.has(key)){
+        target.push(r);
+        existingKeys.add(key);
+      }
+    });
+  }
+
   rowsEl.addEventListener('change',e=>{
     const tr=e.target.closest('tr');
     if(!tr) return;
@@ -923,61 +1202,8 @@ td input,td select{min-height:34px;padding:5px 8px;border-radius:6px;font-size:1
       if(!files.length) return;
 
       const receipts=normalizeReceipts(exp);
-
-      const jobs=files.map(file=>new Promise(resolve=>{
-        const receipt={
-          id:'r_'+Date.now()+'_'+Math.random().toString(36).slice(2,10),
-          name:file.name,
-          type:(file.type==='application/pdf'||file.name.toLowerCase().endsWith('.pdf'))?'pdf':'image',
-          data:'',
-          preview:'',
-          pageCount:0,
-          previewError:''
-        };
-
-        const reader=new FileReader();
-        reader.onload=async()=>{
-          receipt.data=reader.result;
-
-          if(receipt.type==='pdf'){
-            try{
-              const preview=await makePdfFirstPagePreview(receipt.data);
-              receipt.preview=preview.data;
-              receipt.pageCount=preview.pages;
-            }catch(err){
-              receipt.preview='';
-              receipt.previewError='PDF preview unavailable';
-              console.warn('PDF receipt preview unavailable:',err);
-            }
-          }else{
-            receipt.preview=receipt.data;
-            receipt.pageCount=1;
-          }
-
-          resolve(receipt);
-        };
-
-        reader.onerror=()=>{
-          receipt.previewError='The receipt file could not be read.';
-          resolve(receipt);
-        };
-
-        reader.readAsDataURL(file);
-      }));
-
-      Promise.all(jobs).then(newReceipts=>{
-        const existingKeys=new Set(
-          receipts.map(r=>`${r.name||''}::${r.type||''}::${r.data||''}`)
-        );
-
-        newReceipts.forEach(r=>{
-          const key=`${r.name||''}::${r.type||''}::${r.data||''}`;
-          if(!existingKeys.has(key)){
-            receipts.push(r);
-            existingKeys.add(key);
-          }
-        });
-
+      processReceiptFiles(files).then(newReceipts=>{
+        mergeReceiptsDedup(receipts,newReceipts);
         dedupeReceipts(exp);
         e.target.value='';
         render();
@@ -1062,12 +1288,59 @@ td input,td select{min-height:34px;padding:5px 8px;border-radius:6px;font-size:1
       note.id='quickTopError';
       note.className='quick-top-error';
       note.setAttribute('role','alert');
-      document.querySelector('.quick-expense-bar').appendChild(note);
+      document.getElementById('newExpenseErrorSlot').appendChild(note);
     }
     note.textContent=message;
     note.hidden=false;
     window.clearTimeout(note._timer);
     note._timer=window.setTimeout(()=>{ note.hidden=true; },4500);
+  }
+
+  // ---------- Receipt staging (New Expense section, before "Add Expense") ----------
+  function renderPendingReceipts(){
+    const container=document.getElementById('pendingReceiptItems');
+    if(!container) return;
+    container.innerHTML=pendingReceipts.map((r,ri)=>`
+      <div class="receipt-item">
+        ${r.preview ? `<img class="receipt-thumb ${r.type==='pdf'?'receipt-pdf-thumb':''}" src="${r.preview}" alt="${escapeHtml(r.name||'Receipt')}" title="${escapeHtml(r.name||'Receipt')}">` : `<div class="receipt-empty">Preview unavailable</div>`}
+        <div class="receipt-item-info">
+          <span class="receipt-name" title="${escapeHtml(r.name||'Receipt')}">${escapeHtml(r.name||'Receipt')}</span>
+          <span class="receipt-kind ${r.type==='pdf'?'is-pdf':''}">${r.type==='pdf'?ICON_PDF+'PDF receipt':ICON_IMAGE+'Image receipt'}</span>
+          ${r.type==='pdf'&&r.pageCount?`<span class="receipt-page-count">${r.pageCount} page${r.pageCount===1?'':'s'}</span>`:''}
+          ${r.previewError?`<span class="receipt-preview-error">${escapeHtml(r.previewError)}</span>`:''}
+        </div>
+        <button class="remove-receipt" type="button" data-pending-index="${ri}" title="Remove receipt" aria-label="Remove receipt">${ICON_X}</button>
+      </div>`).join('');
+  }
+
+  const pendingReceiptFile=document.getElementById('pendingReceiptFile');
+  if(pendingReceiptFile){
+    pendingReceiptFile.addEventListener('change',e=>{
+      const files=Array.from(e.target.files||[]);
+      if(!files.length) return;
+      processReceiptFiles(files).then(newReceipts=>{
+        mergeReceiptsDedup(pendingReceipts,newReceipts);
+        e.target.value='';
+        renderPendingReceipts();
+      });
+    });
+  }
+
+  const pendingReceiptItemsEl=document.getElementById('pendingReceiptItems');
+  if(pendingReceiptItemsEl){
+    pendingReceiptItemsEl.addEventListener('click',e=>{
+      const removeBtn=e.target.closest('.remove-receipt');
+      if(removeBtn){
+        const idx=Number(removeBtn.dataset.pendingIndex);
+        if(Number.isInteger(idx) && idx>=0 && idx<pendingReceipts.length){
+          pendingReceipts.splice(idx,1);
+          renderPendingReceipts();
+        }
+        return;
+      }
+      const thumb=e.target.closest('.receipt-thumb');
+      if(thumb) openLightbox(thumb.src,thumb.alt);
+    });
   }
 
   function resetAfterExpenseAdded(){
@@ -1083,6 +1356,8 @@ td input,td select{min-height:34px;padding:5px 8px;border-radius:6px;font-size:1
     document.getElementById('quickInrAmount').value='';
     document.getElementById('quickAmountError').textContent='';
     document.getElementById('quickInrHelper').classList.remove('field-error');
+    pendingReceipts.length=0;
+    renderPendingReceipts();
     const topError=document.getElementById('quickTopError');
     if(topError) topError.hidden=true;
     updateQuickEntry();
@@ -1161,7 +1436,8 @@ td input,td select{min-height:34px;padding:5px 8px;border-radius:6px;font-size:1
       description,
       currency,
       amount,
-      inrAmount:currency==='INR'?amount:inrAmt
+      inrAmount:currency==='INR'?amount:inrAmt,
+      receipts:pendingReceipts
     });
 
     resetAfterExpenseAdded();
@@ -1173,7 +1449,13 @@ td input,td select{min-height:34px;padding:5px 8px;border-radius:6px;font-size:1
     const amountField=document.getElementById('quickAmount');
     const inrField=document.getElementById('quickInrAmount');
     const inrHelper=document.getElementById('quickInrHelper');
+    sanitizeAmountInput(amountField);
+    if(!inrField.readOnly) sanitizeAmountInput(inrField);
     inrHelper.classList.remove('field-error');
+    const flagEl=document.getElementById('quickCurrencyFlag');
+    if(flagEl) flagEl.innerHTML=currency==='INR'?ICON_FLAG_INR:ICON_FLAG_USD;
+    const symbolEl=document.getElementById('quickAmountSymbol');
+    if(symbolEl) symbolEl.textContent=currencySymbol(currency);
     if(currency==='INR'){
       inrField.readOnly=true;
       const amount=Number(amountField.value);
@@ -1191,7 +1473,68 @@ td input,td select{min-height:34px;padding:5px 8px;border-radius:6px;font-size:1
     updateQuickEntry();
   });
   document.getElementById('quickAmount').addEventListener('input',updateQuickEntry);
+  document.getElementById('quickInrAmount').addEventListener('input',()=>sanitizeAmountInput(document.getElementById('quickInrAmount')));
   updateQuickEntry();
+
+  document.getElementById('clearNewExpense')?.addEventListener('click',resetAfterExpenseAdded);
+  document.getElementById('previewPrintBtn')?.addEventListener('click',()=>{
+    document.getElementById('generatePdf').click();
+  });
+
+  // ---------- Employee info persistence (localStorage) ----------
+  // Only Employee Name and Department are persisted — never expenses, receipts,
+  // or claim dates. Every access is wrapped so the app still works when
+  // localStorage is unavailable (private browsing, storage disabled, etc).
+  const LS_KEYS={employee:'zoos_reimbursement_employee_name',department:'zoos_reimbursement_department',theme:'zoos_reimbursement_theme'};
+  function lsGet(key){ try{ return localStorage.getItem(key); }catch(err){ return null; } }
+  function lsSet(key,value){ try{ localStorage.setItem(key,value); }catch(err){ /* storage unavailable — ignore */ } }
+
+  function updateAvatarInitials(){
+    const avatar=document.getElementById('userAvatar');
+    if(!avatar) return;
+    const name=document.getElementById('employee').value.trim();
+    if(!name){ avatar.textContent='—'; return; }
+    const parts=name.split(/\s+/).filter(Boolean);
+    const initials=((parts[0]?.[0]||'')+(parts[1]?.[0]||'')).toUpperCase();
+    avatar.textContent=initials||name[0].toUpperCase();
+  }
+
+  (function restoreEmployeeInfo(){
+    const savedName=lsGet(LS_KEYS.employee);
+    const savedDept=lsGet(LS_KEYS.department);
+    if(savedName) document.getElementById('employee').value=savedName;
+    if(savedDept){
+      const deptSelect=document.getElementById('department');
+      if(Array.from(deptSelect.options).some(o=>o.value===savedDept)) deptSelect.value=savedDept;
+    }
+    updateAvatarInitials();
+  })();
+
+  document.getElementById('employee').addEventListener('input',()=>{
+    lsSet(LS_KEYS.employee,document.getElementById('employee').value.trim());
+    updateAvatarInitials();
+  });
+  document.getElementById('department').addEventListener('change',()=>{
+    lsSet(LS_KEYS.department,document.getElementById('department').value);
+  });
+
+  // ---------- Theme toggle (light/dark) ----------
+  const ICON_SUN='<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>';
+  const ICON_MOON='<path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/>';
+  const themeToggle=document.getElementById('themeToggle');
+  const themeToggleIcon=document.getElementById('themeToggleIcon');
+  function applyTheme(theme){
+    document.documentElement.setAttribute('data-theme',theme);
+    lsSet(LS_KEYS.theme,theme);
+    if(themeToggleIcon) themeToggleIcon.innerHTML=theme==='dark'?ICON_MOON:ICON_SUN;
+  }
+  if(themeToggle){
+    applyTheme(document.documentElement.getAttribute('data-theme')==='dark'?'dark':'light');
+    themeToggle.addEventListener('click',()=>{
+      const current=document.documentElement.getAttribute('data-theme')==='dark'?'dark':'light';
+      applyTheme(current==='dark'?'light':'dark');
+    });
+  }
 
   // ---------- PDF.js (classic build, works from file://) ----------
   function ensurePdfWorker(){
@@ -1335,19 +1678,18 @@ td input,td select{min-height:34px;padding:5px 8px;border-radius:6px;font-size:1
             <img class="print-logo" src="https://crm.zoosglobal.com/favicon.png" alt="Zoos Global logo">
             <div class="print-title-line">
               <div class="print-title-primary">
-                <span class="print-org-name">Style ETrademark Pvt. Ltd.</span>
+                <span class="print-org-name">Style E-Trademark Pvt. Ltd.</span>
                 <span class="print-title-divider">|</span>
                 <span class="print-doc-title">Employee Reimbursement Claim</span>
               </div>
               <div class="print-org-brand">ZOOS GLOBAL</div>
             </div>
           </div>
-          <div class="print-doc-badge">REIMBURSEMENT CLAIM</div>
         </div>
         <div class="print-claim-strip">
           <div class="strip-item"><span>Document Type</span><strong>Employee Expense Claim</strong></div>
           <div class="strip-item"><span>Claim Month</span><strong>${escapeHtml(claimMonth||'—')}</strong></div>
-          <div class="strip-item"><span>Total Reimbursement</span><strong>${formatMoney(total)}</strong></div>
+          <div class="strip-item strip-total"><span>Total Reimbursement</span><strong>${formatMoney(total)}</strong></div>
         </div>
       </div>
 
@@ -1380,10 +1722,11 @@ td input,td select{min-height:34px;padding:5px 8px;border-radius:6px;font-size:1
       </tbody></table></div>`;
 
     if(shown.length){
-      out+=`<div class="print-section-label">Receipt Attachments</div>`;
+      out+=`<div class="print-section-label">Receipt Attachments</div>
+      <div class="print-receipt-notice">Detailed receipt attachments are provided in the following pages.</div>`;
     }
 
-    out+=`<div class="print-footer"><span>Style E-Trademark Pvt. Ltd. &middot; Zoos Global</span><span>Employee Reimbursement Claim</span></div>`;
+    out+=`<div class="print-footer"><span>ZOOS GLOBAL &middot; Style E-Trademark Pvt. Ltd.</span><span>Employee Reimbursement Claim</span></div>`;
 
     const printPreview=document.getElementById('printPreview');
     printPreview.innerHTML=out;
