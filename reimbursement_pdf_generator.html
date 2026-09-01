@@ -1,0 +1,1616 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Employee Reimbursement PDF Generator</title>
+
+<!-- Third-party date selector -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/plugins/monthSelect/style.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/plugins/monthSelect/index.js"></script>
+
+<!-- Third-party PDF renderer (classic, non-module build so it also works when this
+     file is opened directly from disk via file://) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+<style>
+:root{
+  --navy:#132a46;
+  --navy-2:#1c3a5e;
+  --accent:#2b6cb0;
+  --ink:#101828;
+  --muted:#667085;
+  --muted-2:#98a2b3;
+  --bg:#f3f5f8;
+  --surface:#ffffff;
+  --border:#e3e7ec;
+  --border-strong:#c9d0d8;
+  --danger:#b42318;
+  --danger-bg:#fef3f2;
+  --warn:#b54708;
+  --warn-bg:#fffaeb;
+  --success:#067647;
+  --success-bg:#ecfdf3;
+  --radius:10px;
+  --radius-sm:7px;
+  --shadow-sm:0 1px 2px rgba(16,24,40,.06);
+  --shadow-md:0 8px 20px rgba(16,24,40,.10);
+}
+*{box-sizing:border-box}
+html,body{height:auto}
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background:var(--bg);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+}
+button,input,select{font:inherit;color:inherit}
+h1,h2,h3{margin:0}
+.app{width:min(96vw,1680px);max-width:1680px;margin:28px auto;padding:0 14px 48px}
+
+/* ---------- Header ---------- */
+.header{
+  background:linear-gradient(180deg,var(--navy) 0%,var(--navy-2) 100%);
+  color:#fff;border-radius:var(--radius) var(--radius) 0 0;padding:22px 26px;
+  box-shadow:var(--shadow-sm);
+}
+.header-kicker{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;opacity:.65;margin-bottom:4px}
+.header h1{font-size:21px;font-weight:700;letter-spacing:-.01em}
+.header p{margin:5px 0 0;opacity:.78;font-size:12.5px;max-width:640px;line-height:1.5}
+
+/* ---------- Panels ---------- */
+.panel{background:var(--surface);border:1px solid var(--border);border-top:0;padding:20px 24px;box-shadow:var(--shadow-sm)}
+.panel:last-of-type{border-radius:0 0 var(--radius) var(--radius);padding-bottom:22px}
+.panel + .panel{border-top:1px solid var(--border);margin-top:0}
+.section-panel{margin-top:18px;border-radius:var(--radius);border-top:1px solid var(--border)}
+
+.top-field-hint{font-weight:500;color:var(--muted);font-size:10px}
+
+.section-label{
+  font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--navy-2);margin-bottom:14px;display:flex;align-items:center;gap:7px;
+}
+.section-label::after{content:"";flex:1;height:1px;background:var(--border)}
+
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.field label{display:block;font-size:12px;font-weight:700;margin-bottom:6px;color:#344054}
+input,select{
+  width:100%;min-height:40px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);
+  padding:8px 10px;background:#fff;transition:border-color .12s,box-shadow .12s;
+}
+input:hover,select:hover{border-color:#9aa5b1}
+input:focus,select:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0 3px rgba(43,108,176,.18)}
+button:focus-visible,input:focus-visible,select:focus-visible,.receipt-thumb:focus-visible{
+  outline:0;box-shadow:0 0 0 3px rgba(43,108,176,.30);
+}
+select{appearance:none;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%23667085' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center;padding-right:30px}
+
+.toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:end;margin-top:18px}
+.toolbar .field{min-width:220px;flex:1}
+.filter-toolbar .field{flex:1 1 0;min-width:0}
+.filter-toolbar{align-items:start}.filter-toolbar .field input,.filter-toolbar .field select{height:40px;box-sizing:border-box}
+
+/* ---------- Buttons ---------- */
+.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px}
+button{border:0;border-radius:var(--radius-sm);padding:0 15px;min-height:40px;cursor:pointer;font-weight:600;font-size:13px;transition:background .12s,box-shadow .12s,opacity .12s}
+.primary{background:var(--navy);color:#fff;box-shadow:var(--shadow-sm)}
+.primary:hover:not(:disabled){background:var(--navy-2)}
+.primary:disabled{background:#d0d5dd;color:#98a2b3;box-shadow:none;cursor:not-allowed}
+.secondary{background:#eef1f4;color:#243447}
+.secondary:hover{background:#e3e8ed}
+.danger{background:#fff;color:var(--danger);border:1px solid #f3c6c0}
+.danger:hover{background:var(--danger-bg)}
+.remove{width:36px;height:36px;padding:0;display:inline-flex;align-items:center;justify-content:center;font-size:15px;min-height:0}
+.btn-icon{display:inline-flex;align-items:center;gap:6px}
+.pdf-primary{padding:0 18px}
+
+/* ---------- Status banner ---------- */
+.status{
+  margin-top:16px;display:flex;align-items:flex-start;gap:10px;padding:11px 14px;
+  border-radius:var(--radius-sm);border:1px solid var(--border);background:#f8fafc;
+  font-size:12.5px;color:var(--ink);line-height:1.5;
+}
+.status svg{flex:0 0 16px;margin-top:2px}
+.status strong{display:block;margin-bottom:1px;font-size:12.5px}
+.status.status--warn{background:var(--warn-bg);border-color:#fbdba0;color:#7a4a08}
+.status.status--ok{background:var(--success-bg);border-color:#b7ecd0;color:#065f37}
+.status-list{margin:0;padding:0;list-style:none}
+.status-list li{position:relative;padding-left:12px}
+.status-list li::before{content:"•";position:absolute;left:0}
+
+/* ---------- Claim / new expense layout ---------- */
+.claim-common-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:14px;
+}
+.claim-secondary-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;
+}
+.new-expense-fields{
+  margin-top:18px;padding-top:14px;border-top:1px solid var(--border);
+}
+.subsection-label{
+  font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--navy-2);margin-bottom:10px;
+}
+.new-expense-grid{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,.85fr) minmax(0,1.35fr);
+  gap:14px;align-items:end;
+}
+
+/* ---------- Quick expense bar ---------- */
+.quick-expense-bar{
+  margin-top:14px;padding:13px;border:1px solid var(--border);border-radius:var(--radius);
+  background:#f8fafc;display:grid;
+  grid-template-columns:minmax(220px,1fr) 140px 160px 180px minmax(360px,auto);
+  gap:10px;align-items:end;
+}
+.quick-expense-title{display:flex;align-items:center;gap:10px;min-width:0;align-self:center}
+.quick-expense-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:#e7eef7;color:var(--navy);flex:0 0 32px}
+.quick-title{font-size:12.5px;font-weight:800;color:var(--navy)}
+.quick-subtitle{font-size:10.5px;color:var(--muted);margin-top:2px;line-height:1.35}
+.quick-field{min-width:0;display:block}
+.quick-field label{display:block;font-size:11px;font-weight:700;color:#344054;margin-bottom:5px;white-space:nowrap}
+.quick-field input,.quick-field select{min-height:40px;background:#fff;width:100%;box-sizing:border-box}
+.quick-inr input{font-weight:700;background:#eef2f7}
+.quick-inr input:not([readonly]){background:#fff;font-weight:400}
+.quick-helper{font-size:9.5px;color:var(--muted);margin-top:4px;line-height:1.3;min-height:14px;white-space:normal}
+.quick-helper.field-error{color:var(--danger);font-weight:600}
+.quick-actions{display:flex;gap:8px;align-items:end;justify-content:flex-end;min-width:0;box-sizing:border-box}
+.quick-actions button{height:40px;white-space:nowrap;flex:0 0 auto}
+.quick-top-error{
+  flex:1 1 100%;
+  margin-top:0;
+  padding:8px 10px;
+  border:1px solid #f3c6c0;
+  border-radius:7px;
+  background:var(--danger-bg);
+  color:var(--danger);
+  font-size:11px;
+  font-weight:600;
+}
+.quick-top-error[hidden]{display:none}
+
+.validation{font-size:11px;margin-top:4px;color:var(--danger);min-height:14px}
+.amount-invalid{border-color:#d92d20!important;background:#fffafa}
+
+
+.header-brand{display:flex;align-items:center;justify-content:space-between;gap:18px}
+.header-brand-copy{min-width:0}
+.header-brand-name{font-size:10px;font-weight:800;letter-spacing:.18em;opacity:.82;margin-top:2px}
+.header-logo{width:54px;height:54px;object-fit:contain;display:block;opacity:.96;flex:0 0 54px}
+.header-rule{height:1px;background:rgba(255,255,255,.16);margin:13px 0 13px}
+.receipt-files{display:flex;flex-wrap:wrap;gap:7px;margin-top:7px}
+.receipt-item{display:flex;align-items:center;gap:6px;border:1px solid var(--border);background:#fbfcfe;border-radius:7px;padding:5px}
+.receipt-item .receipt-thumb{width:42px;height:48px;flex-basis:42px}
+.receipt-item-info{min-width:70px;max-width:135px}
+.receipt-item .receipt-name{max-width:135px}
+.receipt-count{font-size:9.5px;color:var(--muted);font-weight:600;margin-top:2px}
+
+/* ---------- Table ---------- */
+.table-wrap{overflow-x:auto;overflow-y:visible;margin-top:16px;-webkit-overflow-scrolling:touch;border:1px solid var(--border);border-radius:var(--radius)}
+table{width:100%;border-collapse:collapse;min-width:1540px;table-layout:fixed}
+th{background:var(--navy);color:#fff;font-size:11.5px;font-weight:700;letter-spacing:.02em;text-align:left;padding:10px 9px;border:0;border-bottom:1px solid rgba(255,255,255,.14);white-space:normal}
+thead tr th:first-child{border-top-left-radius:var(--radius)}
+thead tr th:last-child{border-top-right-radius:var(--radius)}
+td{border:0;border-bottom:1px solid var(--border);padding:8px 9px;font-size:12.5px;vertical-align:top}
+tbody tr:hover td{background:#fafbfc}
+tbody tr:last-child td{border-bottom:0}
+td input,td select{min-height:34px;padding:5px 7px;border-radius:6px;font-size:12.5px}
+#expenseTable th:nth-child(1),#expenseTable td:nth-child(1){width:42px;color:var(--muted);font-weight:600}
+#expenseTable th:nth-child(2),#expenseTable td:nth-child(2){width:130px}
+#expenseTable th:nth-child(3),#expenseTable td:nth-child(3){width:130px}
+#expenseTable th:nth-child(4),#expenseTable td:nth-child(4){width:230px}
+#expenseTable th:nth-child(5),#expenseTable td:nth-child(5){width:112px}
+#expenseTable th:nth-child(6),#expenseTable td:nth-child(6){width:125px}
+#expenseTable th:nth-child(7),#expenseTable td:nth-child(7){width:165px}
+#expenseTable th:nth-child(8),#expenseTable td:nth-child(8){width:300px}
+#expenseTable th:nth-child(9),#expenseTable td:nth-child(9){width:48px}
+.money{text-align:right;font-variant-numeric:tabular-nums}
+.row-no{padding-top:11px}
+
+.receipt-cell{min-width:0}
+.receipt-upload-row{display:flex;align-items:center;gap:8px;flex-wrap:nowrap}
+.receipt-upload-row .receipt{width:100%;min-width:0;font-size:11px}
+.receipt-name{display:block;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10.5px;color:var(--muted);margin-top:1px}
+.receipt-kind{display:block;font-size:10px;color:var(--success);font-weight:700;margin-top:2px}
+.receipt-preview{display:flex;align-items:center;gap:8px;margin-top:6px}
+.receipt-thumb{width:52px;height:58px;border:1px solid var(--border-strong);border-radius:6px;object-fit:cover;background:#f8fafc;display:block;cursor:zoom-in;flex:0 0 52px;padding:0}
+.receipt-pdf-thumb{object-fit:contain;padding:2px;background:#f8fafc}
+.receipt-preview-error{font-size:9.5px;color:var(--danger);max-width:150px;line-height:1.3}
+.receipt-page-count{display:block;font-size:9.5px;color:var(--muted);margin-top:2px}
+.receipt-empty{width:52px;height:44px;border:1px dashed var(--border-strong);border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--muted-2);font-size:8px;text-align:center;flex:0 0 52px;padding:2px}
+.receipt-missing-flag{display:inline-flex;align-items:center;gap:3px;font-size:9.5px;color:var(--danger);font-weight:700;margin-top:3px}
+
+.currency-box{min-width:112px}.inr-box{min-width:150px}
+.field-help{font-size:10px;color:var(--muted);margin-top:3px}
+
+/* ---------- Summary ---------- */
+.summary-wrap{margin-top:18px;display:flex;justify-content:flex-end}
+.summary{width:min(100%,420px);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.summary table{min-width:0;table-layout:auto}
+.summary td{font-size:13px;padding:9px 13px;border-bottom:1px solid var(--border)}
+.summary tr:last-child td{border-bottom:0}
+.summary td:last-child{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.summary tr.total-row td{background:var(--navy);color:#fff;font-size:13.5px}
+
+.note{font-size:11.5px;color:var(--muted);margin-top:16px;line-height:1.6;border-top:1px solid var(--border);padding-top:14px}
+
+.empty{padding:40px 20px;text-align:center;color:var(--muted);font-size:13px}
+.empty strong{display:block;color:var(--ink);font-size:14px;margin-bottom:4px}
+
+.icon{width:15px;height:15px;display:inline-block;vertical-align:-3px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.icon-only{margin:0;width:16px;height:16px}
+
+/* ---------- Lightbox ---------- */
+.lightbox{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:32px}
+.lightbox[hidden]{display:none}
+.lightbox-backdrop{position:absolute;inset:0;background:rgba(16,24,40,.72)}
+.lightbox-content{position:relative;max-width:90vw;max-height:90vh;background:#fff;border-radius:8px;padding:8px;box-shadow:var(--shadow-md)}
+.lightbox-content img{display:block;max-width:100%;max-height:82vh;border-radius:4px}
+.lightbox-close{position:absolute;top:-14px;right:-14px;width:32px;height:32px;border-radius:50%;background:var(--navy);color:#fff;font-size:16px;line-height:1;padding:0}
+
+@media(max-width:1200px) and (min-width:1001px){
+  .quick-expense-bar{grid-template-columns:minmax(190px,1fr) 140px 155px 190px auto;gap:10px}
+  .quick-actions{gap:6px}
+  .quick-actions button{padding:0 11px}
+}
+@media(max-width:1000px){
+  .claim-common-grid,.claim-secondary-grid{grid-template-columns:1fr 1fr}
+  .new-expense-grid{grid-template-columns:1fr 1fr}
+  .new-expense-grid .field:last-child{grid-column:1/-1}
+  .quick-expense-bar{grid-template-columns:minmax(200px,1fr) repeat(2,minmax(130px,1fr))}
+  .quick-inr{grid-column:1}
+  .quick-actions{grid-column:2/-1;justify-content:flex-start;margin-top:0}
+}
+@media(max-width:600px){
+  .claim-common-grid,.claim-secondary-grid,.new-expense-grid{grid-template-columns:1fr}
+  .new-expense-grid .field:last-child{grid-column:auto}
+  .receipt-files{max-height:none}
+  .receipt-item{max-width:100%}
+  .quick-expense-bar{grid-template-columns:1fr;align-items:stretch}
+  .quick-expense-title,.quick-field,.quick-actions{width:100%}
+  .quick-actions{grid-column:1;flex-direction:column;align-items:stretch;padding-bottom:0}
+  .quick-actions button{width:100%}
+  .app{margin-top:12px;padding:0 10px}
+  .summary-wrap{justify-content:stretch}
+  .summary{width:100%}
+}
+
+/* ---------- Print ---------- */
+#printPreview{display:none}
+
+.table-actions{display:flex;justify-content:flex-end;align-items:center;margin-top:14px;padding-top:14px;border-top:1px solid #e4e7ec}
+.table-actions .pdf-primary{min-width:210px}
+@media (max-width:900px){.table-actions{justify-content:stretch}.table-actions .pdf-primary{width:100%}}
+@media print{
+ @page{size:A4;margin:14mm 12mm 18mm}
+ body{background:#fff}
+ .print-letterhead{position:relative;overflow:hidden;background:#f7f9fc;border:1px solid #d9dee7;border-radius:7px;padding:11px 13px 12px;border-bottom:3px solid #132a46}
+ .print-brand{display:flex;align-items:center;gap:9px}
+ .print-logo{width:38px;height:38px;object-fit:contain;background:#132a46;border-radius:5px;padding:3px}
+ .print-org-name{font-size:14px;font-weight:800;color:#132a46;letter-spacing:.01em}
+ .print-org-brand{font-size:8.5px;color:#667085;font-weight:800;letter-spacing:.16em;text-transform:uppercase;margin-top:2px}
+ .print-doc-title{font-size:11px;font-weight:800;color:#132a46;letter-spacing:.05em;text-transform:uppercase;text-align:right}
+ .print-doc-badge{display:inline-block;margin-top:5px;font-size:7.5px;font-weight:700;color:#132a46;border:1px solid #c9d5e3;padding:3px 8px;border-radius:10px;background:#fff}
+ .print-claim-strip{display:grid;grid-template-columns:1fr 1fr 1fr;margin:11px 0 2px;border:1px solid #d9dee7;border-radius:5px;overflow:hidden;background:#fff}
+ .print-claim-strip .strip-item{padding:6px 8px;border-right:1px solid #d9dee7}
+ .print-claim-strip .strip-item:last-child{border-right:0}
+ .print-claim-strip span{display:block;font-size:6.8px;color:#667085;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
+ .print-claim-strip strong{font-size:9px;color:#101828}
+ .print-table th{letter-spacing:.015em}
+
+ .app>*:not(#printPreview){display:none!important}
+ .lightbox{display:none!important}
+ #printPreview{display:block!important}
+ .print-form{display:block;max-width:100%;width:100%;overflow:hidden}
+
+ .print-letterhead{border-bottom:3px solid #132a46;padding-bottom:10px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-end;gap:14px}
+ .print-org-name{font-size:15px;font-weight:800;color:#132a46;letter-spacing:.01em}
+ .print-org-brand{font-size:9.5px;color:#667085;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-top:2px}
+ .print-doc-title{font-size:11px;font-weight:800;color:#132a46;letter-spacing:.05em;text-transform:uppercase;text-align:right}
+ .print-doc-badge{display:inline-block;margin-top:5px;font-size:7.5px;font-weight:700;color:#132a46;border:1px solid #c9d5e3;padding:3px 8px;border-radius:10px}
+
+ .print-section-label{font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#132a46;margin:16px 0 8px;padding-bottom:4px;border-bottom:1px solid #d9dee7}
+ .print-section-label:first-of-type{margin-top:0}
+
+ .meta{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px}
+ .meta-item{background:#f8fafc;border:1px solid #e4e7ec;border-radius:4px;padding:6px 7px}
+ .meta-item span{display:block;color:#667085;font-size:7px;text-transform:uppercase;letter-spacing:.35px;margin-bottom:2px}
+ .meta-item strong{display:block;color:#101828;font-size:9px}
+
+ .print-table{width:100%;max-width:100%;min-width:0;box-sizing:border-box;border-collapse:separate;border-spacing:0;font-size:8.2px;table-layout:fixed;border:1px solid #cfd4dc;border-radius:5px;overflow:hidden}
+ .print-table th{background:#132a46!important;color:#fff!important;padding:6px 4px;border:0;border-right:1px solid rgba(255,255,255,.18);font-size:7.2px;text-align:left;white-space:normal;overflow-wrap:anywhere;word-break:normal;box-sizing:border-box}
+ .print-table th:last-child{border-right:0}
+ .print-table td{padding:5px 4px;border:0;border-right:1px solid #d9dee7;border-top:1px solid #d9dee7;box-sizing:border-box;min-width:0;overflow-wrap:anywhere;word-break:break-word;vertical-align:top}
+ .print-table td:last-child{border-right:0}
+ .print-table th:nth-child(1),.print-table td:nth-child(1){width:4%}
+ .print-table th:nth-child(2),.print-table td:nth-child(2){width:10%}
+ .print-table th:nth-child(3),.print-table td:nth-child(3){width:13%}
+ .print-table th:nth-child(4),.print-table td:nth-child(4){width:25%}
+ .print-table th:nth-child(5),.print-table td:nth-child(5){width:9%}
+ .print-table th:nth-child(6),.print-table td:nth-child(6){width:12%}
+ .print-table th:nth-child(7),.print-table td:nth-child(7){width:14%}
+ .print-table th:nth-child(8),.print-table td:nth-child(8){width:13%}
+ .print-table tbody tr:nth-child(even) td{background:#f8fafc}
+ .print-table tfoot td{font-weight:700;background:#eef2f7;border-top:1px solid #cfd4dc}
+ .print-table .money{text-align:right}
+
+ .print-summary-wrap{display:flex;justify-content:flex-end}
+ .print-summary{width:52%;max-width:100%;min-width:0;box-sizing:border-box;margin-top:4px;border-collapse:separate;border-spacing:0;font-size:8.5px;table-layout:fixed;border:1px solid #cfd4dc;border-radius:5px;overflow:hidden}
+ .print-summary td{border:0;border-top:1px solid #d9dee7;padding:5px 8px;min-width:0;overflow-wrap:anywhere}
+ .print-summary tr:first-child td{border-top:0}
+ .print-summary td:last-child{text-align:right;font-weight:700}
+ .print-summary tr.total-row td{background:#132a46!important;color:#fff!important;font-size:9.5px;font-weight:700}
+
+ .receipt-page{break-before:page;page-break-before:always;max-width:100%;width:100%;overflow:hidden}
+ .receipt-page img,.receipt-page canvas{max-width:100%;height:auto}
+ .receipt-page-header{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid #d9dee7;padding-bottom:5px;margin-bottom:8px}
+ .receipt-page-header h2{font-size:12px;margin:0;color:#132a46}
+ .receipt-page-header span{font-size:8px;color:#98a2b3;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+ .receipt-meta{font-size:8px;color:#475467;margin-bottom:10px;line-height:1.6}
+ .receipt-meta b{color:#101828}
+ .receipt-body{text-align:center}
+ .receipt-body img{max-width:100%;max-height:225mm;object-fit:contain}
+ .pdf-page-wrap{width:100%;text-align:center}
+ .pdf-native-page{
+   break-before:page;
+   page-break-before:always;
+   break-inside:avoid;
+   page-break-inside:avoid;
+   width:100%;
+   height:250mm;
+   max-height:250mm;
+   overflow:hidden;
+   display:flex;
+   align-items:flex-start;
+   justify-content:center;
+   padding:0;
+   box-sizing:border-box;
+ }
+ .pdf-native-page canvas{
+   display:block;
+   width:100%;
+   max-width:100%;
+   height:auto!important;
+   max-height:250mm;
+   margin:0 auto;
+ }
+ .pdf-native-page:last-child{
+   break-after:auto;
+   page-break-after:auto;
+ }
+ .pdf-page-wrap canvas{max-width:100%;height:auto!important;display:block;margin:0 auto 8mm}
+ .receipt-placeholder{border:1px dashed #c9d0d8;padding:26px;font-size:10px;color:#667085;border-radius:5px}
+ .loading{color:#132a46;font-weight:700;font-size:10px}
+
+ .print-footer{position:fixed;bottom:6mm;left:12mm;right:12mm;display:flex;justify-content:space-between;font-size:7.5px;color:#98a2b3;border-top:1px solid #e4e7ec;padding-top:4px}
+}
+</style>
+
+<style>
+  /* Web-only creator footer */
+  .creator-footer{
+    width:100%;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:7px;
+    margin:22px 0 16px;
+    padding:4px 12px;
+    font-size:12px;
+    line-height:1;
+    color:#64748b;
+    letter-spacing:.01em;
+    user-select:none;
+  }
+  .creator-footer .heart-wrap{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:17px;
+    height:17px;
+  }
+  .creator-footer .heart{
+    width:15px;
+    height:15px;
+    display:block;
+    transform-origin:center;
+    animation:creator-heartbeat 1.25s ease-in-out infinite;
+  }
+  .creator-footer .creator-name{
+    color:#334155;
+    font-weight:600;
+  }
+  @keyframes creator-heartbeat{
+    0%, 28%, 70%, 100%{transform:scale(1)}
+    14%{transform:scale(1.28)}
+    21%{transform:scale(.94)}
+    35%{transform:scale(1.08)}
+  }
+  @media print{
+    .creator-footer{display:none!important}
+  }
+</style>
+
+<style>
+@media print{
+  @page{size:A4;margin:9mm 10mm 11mm}
+
+  .print-form{width:100%;max-width:100%;overflow:visible}
+
+  .print-letterhead{
+    padding:7px 10px 7px;
+    margin-bottom:8px;
+    border:1px solid #d9dee7;
+    border-radius:5px;
+    border-bottom:3px solid #132a46;
+    background:#f7f9fc;
+    display:block;
+  }
+
+  .print-letterhead-main{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+  }
+
+  .print-brand{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    min-width:0;
+  }
+
+  .print-logo{
+    width:31px;
+    height:31px;
+    padding:2px;
+    border-radius:4px;
+    flex:0 0 auto;
+  }
+
+  .print-title-line{
+    display:flex;
+    align-items:center;
+    flex-wrap:nowrap;
+    white-space:nowrap;
+    min-width:0;
+    gap:6px;
+  }
+
+  .print-org-name{
+    font-size:11px;
+    line-height:1;
+    font-weight:800;
+    color:#132a46;
+  }
+
+  .print-title-divider{
+    font-size:11px;
+    line-height:1;
+    color:#98a2b3;
+    font-weight:600;
+  }
+
+  .print-doc-title{
+    font-size:10.5px;
+    line-height:1;
+    font-weight:800;
+    color:#132a46;
+    letter-spacing:.035em;
+    text-transform:uppercase;
+    text-align:left;
+    white-space:nowrap;
+  }
+
+  .print-org-brand{
+    font-size:7px;
+    line-height:1;
+    color:#667085;
+    font-weight:800;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    margin:0 0 0 2px;
+    white-space:nowrap;
+  }
+
+  .print-doc-badge{
+    display:inline-block;
+    flex:0 0 auto;
+    margin:0;
+    padding:3px 7px;
+    border-radius:9px;
+    font-size:6.5px;
+    font-weight:700;
+    color:#132a46;
+    border:1px solid #c9d5e3;
+    background:#fff;
+    white-space:nowrap;
+  }
+
+  .print-claim-strip{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    margin:6px 0 0;
+    border:1px solid #d9dee7;
+    border-radius:4px;
+    overflow:hidden;
+    background:#fff;
+  }
+
+  .print-claim-strip .strip-item{padding:4px 6px}
+  .print-claim-strip span{font-size:6px;margin-bottom:1px}
+  .print-claim-strip strong{font-size:8px}
+
+  .print-section-label{
+    font-size:8px;
+    margin:8px 0 4px;
+    padding-bottom:3px;
+  }
+
+  .print-section-label:first-of-type{margin-top:0}
+
+  .meta{gap:5px}
+  .meta-item{padding:4px 6px;border-radius:3px}
+  .meta-item span{font-size:6px;margin-bottom:1px}
+  .meta-item strong{font-size:8px}
+
+  .print-table{font-size:7.2px}
+  .print-table th{padding:4px 3px;font-size:6.4px}
+  .print-table td{padding:3px 3px}
+
+  .print-summary{margin-top:3px}
+  .print-summary td{padding:3px 5px;font-size:7px}
+
+  .print-footer{
+    margin-top:7px!important;
+    padding-top:4px!important;
+    font-size:6.5px!important;
+  }
+}
+</style>
+
+<style>
+@media print{
+  .print-title-line{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    justify-content:center;
+    gap:3px;
+    white-space:nowrap;
+  }
+  .print-title-primary{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    white-space:nowrap;
+  }
+  .print-org-brand{
+    margin:0;
+    font-size:7px;
+    line-height:1;
+    letter-spacing:.14em;
+  }
+}
+</style>
+<style>
+@media print{
+  .print-title-line{
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:flex-start!important;
+    justify-content:center!important;
+    gap:3px!important;
+    white-space:nowrap!important;
+  }
+  .print-title-primary{
+    display:flex!important;
+    align-items:center!important;
+    gap:6px!important;
+    white-space:nowrap!important;
+  }
+  .print-org-brand{
+    display:block!important;
+    margin:0!important;
+    font-size:7px!important;
+    line-height:1!important;
+    letter-spacing:.14em!important;
+  }
+}
+</style>
+<style>
+@media print{
+  .print-table{
+    table-layout:fixed!important;
+    width:100%!important;
+  }
+  .print-table th:nth-child(1),
+  .print-table td:nth-child(1){width:4%!important}
+  .print-table th:nth-child(2),
+  .print-table td:nth-child(2){
+    width:11%!important;
+    white-space:nowrap!important;
+  }
+  .print-table th:nth-child(3),
+  .print-table td:nth-child(3){width:12%!important}
+  .print-table th:nth-child(4),
+  .print-table td:nth-child(4){
+    width:27%!important;
+    max-width:27%!important;
+  }
+  .print-table th:nth-child(5),
+  .print-table td:nth-child(5){width:8%!important}
+  .print-table th:nth-child(6),
+  .print-table td:nth-child(6){width:11%!important}
+  .print-table th:nth-child(7),
+  .print-table td:nth-child(7){width:15%!important}
+  .print-table th:nth-child(8),
+  .print-table td:nth-child(8){width:12%!important}
+
+  .print-table td:nth-child(2){
+    font-variant-numeric:tabular-nums;
+    letter-spacing:0!important;
+    font-size:7px!important;
+  }
+  .print-table td:nth-child(4){
+    overflow-wrap:anywhere;
+    word-break:normal;
+  }
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="header">
+    <div class="header-brand">
+      <div class="header-brand-copy">
+        <div class="header-kicker">Style E-Trademark Pvt. Ltd.</div>
+        <div class="header-brand-name">ZOOS GLOBAL</div>
+      </div>
+      <img class="header-logo" src="https://crm.zoosglobal.com/favicon.png" alt="Zoos Global logo">
+    </div>
+    <div class="header-rule"></div>
+    <h1>Employee Reimbursement PDF Generator</h1>
+    <p>Browser-only reimbursement builder with month/date selectors, INR/USD conversion, image &amp; PDF receipts, and an ordered, letterhead-style PDF export. No server required.</p>
+  </div>
+
+  <section class="panel">
+    <div class="section-label">Claim details</div>
+
+    <div class="claim-common-grid">
+      <div class="field"><label for="employee">Employee Name</label><input id="employee" autocomplete="name"></div>
+      <div class="field"><label for="department">Department</label>
+        <select id="department">
+          <option value="" selected disabled>Select department</option>
+          <option value="Sales">Sales</option>
+          <option value="Tech">Tech</option>
+          <option value="Finance">Finance</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="claim-secondary-grid">
+      <div class="field"><label for="claimMonth">Claim Month</label><input id="claimMonth" placeholder="MM-YYYY" autocomplete="off"></div>
+      <div class="field"><label for="submissionDate">Submission Date</label><input id="submissionDate" class="filter-date" placeholder="DD-MM-YYYY" autocomplete="off"></div>
+    </div>
+
+    <div class="new-expense-fields">
+      <div class="subsection-label">New expense details</div>
+      <div class="new-expense-grid">
+        <div class="field"><label for="categoryFilter">Category</label>
+          <select id="categoryFilter"><option value="">Select category</option></select>
+        </div>
+        <div class="field"><label for="dateFilter">Expense Date</label><input id="dateFilter" class="filter-date" placeholder="DD-MM-YYYY" autocomplete="off"></div>
+        <div class="field"><label for="descriptionFilter">Description / Business Purpose</label><input id="descriptionFilter" placeholder="e.g. Hotel stay / client travel" autocomplete="off"></div>
+      </div>
+    </div>
+
+    <div class="quick-expense-bar">
+      <div class="quick-expense-title">
+        <span class="quick-expense-icon">
+          <svg class="icon icon-only" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+        </span>
+        <div>
+          <div class="quick-title">New Expense</div>
+          <div class="quick-subtitle">Date, category and description are set above; enter the amount and currency here.</div>
+        </div>
+      </div>
+
+      <div class="quick-field quick-currency">
+        <label for="quickCurrency">Currency</label>
+        <select id="quickCurrency">
+          <option value="INR">INR (₹)</option>
+          <option value="USD">USD ($)</option>
+        </select>
+        <div class="quick-helper">&nbsp;</div>
+      </div>
+
+      <div class="quick-field quick-amount">
+        <label for="quickAmount">Amount</label>
+        <input id="quickAmount" type="number" min="0.01" step="0.01" placeholder="Enter amount">
+        <div class="validation" id="quickAmountError"></div>
+      </div>
+
+      <div class="quick-field quick-inr">
+        <label for="quickInrAmount">INR Amount</label>
+        <input id="quickInrAmount" type="number" min="0.01" step="0.01" readonly placeholder="Calculated">
+        <div class="quick-helper" id="quickInrHelper">Same as amount (INR).</div>
+      </div>
+
+      <div class="quick-actions">
+        <button class="primary btn-icon" id="addRow" type="button">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add Expense
+        </button>
+      </div>
+    </div>
+
+    <div class="status" id="status" role="status" aria-live="polite"></div>
+  </section>
+
+  <section class="panel section-panel">
+    <div class="section-label">Expenses</div>
+    <div class="table-wrap">
+      <table id="expenseTable">
+        <thead>
+          <tr>
+            <th>No.</th><th>Date</th><th>Category</th><th>Description / Business Purpose</th>
+            <th>Currency</th><th>Amount</th><th>INR Amount</th>
+            <th>Receipt</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <div class="summary-wrap">
+      <div class="summary"><table><tbody id="summaryBody"></tbody></table></div>
+    </div>
+    <div class="table-actions">
+      <button class="primary btn-icon pdf-primary" id="generatePdf" type="button">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M6 9V3h12v6M6 18H4a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-2"/><path d="M6 14h12v7H6z"/></svg>Generate PDF / Print
+      </button>
+    </div>
+    <div class="note">
+      <strong>Currency rule:</strong> for INR expenses, the INR Amount is always the same as the amount entered. For USD
+      (or any other non-INR currency), enter the original amount <em>and</em> the INR amount actually charged or reimbursed —
+      the current version records both figures directly.
+      <br><strong>Receipt rule:</strong> every expense needs at least one image or PDF receipt. Multiple receipts can be attached to a single expense. PDF receipts are rendered into printable pages so the final PDF preserves the row-by-row receipt sequence.
+    </div>
+  </section>
+
+  <section id="printPreview" class="print-form"></section>
+</div>
+
+<div class="lightbox" id="lightbox" hidden role="dialog" aria-modal="true" aria-label="Receipt preview">
+  <div class="lightbox-backdrop" id="lightboxBackdrop"></div>
+  <div class="lightbox-content">
+    <button class="lightbox-close" id="lightboxClose" type="button" aria-label="Close preview">&times;</button>
+    <img id="lightboxImg" alt="Receipt preview">
+  </div>
+</div>
+
+<script>
+(() => {
+  const rowsEl = document.getElementById('rows');
+  const summaryEl = document.getElementById('summaryBody');
+  const statusEl = document.getElementById('status');
+  const categories = ['Food','Hotel Stay','Travel','Flights','Certificates','Softwares','Stay','Other'];
+  const currencies = ['INR','USD'];
+  let nextId = 1;
+  let isGenerating = false;
+  const expenses = [];
+
+  // "Stay" is kept as the row-level category (matches the reference form) but rolls
+  // up into the "Hotel Stay" bucket for category totals, matching the reference summary.
+  function summaryLabel(cat){
+    return cat === 'Stay' ? 'Hotel Stay' : cat;
+  }
+
+
+  function parseDate(s){
+    const m=/^(\d{2})-(\d{2})-(\d{4})$/.exec(String(s||''));
+    return m ? Date.UTC(+m[3],+m[2]-1,+m[1]) : NaN;
+  }
+  function formatDate(s){
+    return /^\d{2}-\d{2}-\d{4}$/.test(String(s||'')) ? s : '';
+  }
+  function formatMoney(n){
+    const v=Number(n);
+    return '₹ '+(Number.isFinite(v)?v:0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+  }
+  function currencySymbol(cur){
+    return cur==='INR' ? '₹' : cur==='USD' ? '$' : (cur||'')+' ';
+  }
+  function formatAmount(n,currency){
+    const v=Number(n);
+    return currencySymbol(currency)+' '+(Number.isFinite(v)?v:0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+  }
+  function escapeHtml(s){
+    return String(s ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function categoryOptions(selected){
+    return categories.map(c=>`<option ${c===selected?'selected':''}>${escapeHtml(c)}</option>`).join('');
+  }
+  function currencyOptions(selected){
+    return currencies.map(c=>`<option ${c===selected?'selected':''}>${c}</option>`).join('');
+  }
+
+  function addExpense(data={}){
+    const id=nextId++;
+    const currency=data.currency||'INR';
+    const amount=Number.isFinite(Number(data.amount))?Number(data.amount):0;
+    const inrAmt=currency==='INR' ? amount : (data.inrAmount==null||data.inrAmount==='' ? '' : Number(data.inrAmount));
+    expenses.push({
+      id,date:data.date||'',category:data.category||'Travel',description:data.description||'',
+      currency,amount,inrAmount:inrAmt,
+      receipts:[]
+    });
+    render();
+  }
+
+  function filtered(){
+    // Category and Expense Date are creation fields, not report filters.
+    // PDF generation always includes every expense that has been added.
+    return expenses.slice();
+  }
+
+  function inrAmount(e){
+    if(e.currency==='INR'){
+      const amount=Number(e.amount);
+      return Number.isFinite(amount)&&amount>=0?amount:NaN;
+    }
+    const v=Number(e.inrAmount);
+    return Number.isFinite(v)&&v>0?v:NaN;
+  }
+
+  function validateExpense(e){
+    const amount=Number(e.amount);
+    if(!Number.isFinite(amount)||amount<=0)return 'Amount is required and must be greater than 0.';
+    if(e.currency!=='INR'){
+      const inr=Number(e.inrAmount);
+      if(!Number.isFinite(inr)||inr<=0)return 'INR amount is required and must be greater than 0.';
+    }
+    return '';
+  }
+
+  function normalizeReceipts(exp){
+    // receipts[] is the single source of truth.
+    // Never copy legacy receipt fields into receipts[] during render.
+    if(!Array.isArray(exp.receipts)) exp.receipts=[];
+    return exp.receipts;
+  }
+
+  function dedupeReceipts(exp){
+    const receipts=normalizeReceipts(exp);
+    const seen=new Set();
+    exp.receipts=receipts.filter(r=>{
+      const key=r.id || `${r.data||''}::${r.name||''}::${r.type||''}`;
+      if(seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    return exp.receipts;
+  }
+
+  function render(){
+    expenses.forEach(dedupeReceipts);
+    rowsEl.innerHTML='';
+    if(!expenses.length){
+      rowsEl.innerHTML=`<tr><td colspan="9" class="empty"><strong>No expenses yet</strong>Add your first expense using the New Expense controls above.</td></tr>`;
+    } else {
+      expenses.forEach((e,i)=>{
+        const tr=document.createElement('tr');
+        tr.dataset.id=e.id;
+        const error=validateExpense(e);
+        const invalid=error?'amount-invalid':'';
+        const converted=inrAmount(e);
+        tr.innerHTML=`
+          <td class="row-no">${i+1}</td>
+          <td><input class="date filter-date" placeholder="DD-MM-YYYY" autocomplete="off" value="${escapeHtml(e.date)}"></td>
+          <td><select class="cat">${categoryOptions(e.category)}</select></td>
+          <td><input class="desc" value="${escapeHtml(e.description)}" placeholder="Business purpose"></td>
+          <td class="currency-box"><select class="currency">${currencyOptions(e.currency)}</select></td>
+          <td>
+            <input class="amount ${invalid}" type="number" min="0.01" step="0.01" value="${e.amount||''}" placeholder="Required">
+            <div class="validation amount-error">${escapeHtml(error)}</div>
+          </td>
+          <td class="inr-box">
+            <input class="inramt" type="number" min="0.01" step="0.01"
+              value="${e.currency==='INR' ? (Number.isFinite(converted)?converted.toFixed(2):'') : (e.inrAmount===''||e.inrAmount==null?'':e.inrAmount)}"
+              placeholder="${e.currency==='INR'?'Auto':'Enter INR amount'}"
+              ${e.currency==='INR'?'readonly':''}>
+            <div class="field-help">${e.currency==='INR'?'Same as amount':'Amount actually charged/reimbursed in INR'}</div>
+          </td>
+          <td class="receipt-cell">
+            <div class="receipt-upload-row">
+              <input id="receipt-file-${e.id}" class="receipt" type="file" multiple accept="image/*,.pdf,application/pdf">
+              <label class="secondary btn-icon add-receipts-btn" for="receipt-file-${e.id}" title="Add receipts">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add
+              </label>
+            </div>
+            <div class="receipt-items">
+              ${normalizeReceipts(e).map((r,ri)=>`
+                <div class="receipt-item">
+                  ${r.preview ? `<img class="receipt-thumb ${r.type==='pdf'?'receipt-pdf-thumb':''}" src="${r.preview}" alt="${escapeHtml(r.name||'Receipt')}" title="${escapeHtml(r.name||'Receipt')}">` : `<div class="receipt-empty">Preview unavailable</div>`}
+                  <div class="receipt-item-info">
+                    <span class="receipt-name" title="${escapeHtml(r.name||'Receipt')}">${escapeHtml(r.name||'Receipt')}</span>
+                    <span class="receipt-kind">${r.type==='pdf'?'▣ PDF receipt':'▧ Image receipt'}</span>
+                    ${r.type==='pdf'&&r.pageCount?`<span class="receipt-page-count">${r.pageCount} page${r.pageCount===1?'':'s'}</span>`:''}
+                    ${r.previewError?`<span class="receipt-preview-error">${escapeHtml(r.previewError)}</span>`:''}
+                  </div>
+                  <button class="remove-receipt" type="button" data-expense-id="${e.id}" data-receipt-index="${ri}" title="Remove receipt" aria-label="Remove receipt">×</button>
+                </div>`).join('')}
+              ${normalizeReceipts(e).length===0 ? `<span class="receipt-empty-required">⚠ Receipt required</span>` : ''}
+            </div>
+          </td>
+          <td><button class="danger remove" type="button" aria-label="Remove expense ${i+1}" title="Remove expense">×</button></td>`;
+        rowsEl.appendChild(tr);
+        flatpickr(tr.querySelector('.date'),{
+          dateFormat:'d-m-Y',
+          allowInput:true,
+          disableMobile:false
+        });
+      });
+    }
+    refreshFilterCategories();
+    updateStatus();
+  }
+
+  function refreshFilterCategories(){
+    const select=document.getElementById('categoryFilter');
+    const old=select.value;
+    const used=[...new Set(expenses.map(e=>e.category).filter(Boolean))];
+    const all=[...new Set([...categories,...used])];
+    select.innerHTML='<option value="">Select category</option>'+all.map(c=>`<option>${escapeHtml(c)}</option>`).join('');
+    if(all.includes(old))select.value=old;
+  }
+
+  function updateFromRow(tr){
+    const id=Number(tr.dataset.id),e=expenses.find(x=>x.id===id);
+    if(!e)return;
+    e.date=tr.querySelector('.date').value.trim();
+    e.category=tr.querySelector('.cat').value;
+    e.description=tr.querySelector('.desc').value.trim();
+    e.currency=tr.querySelector('.currency').value;
+    e.amount=Math.max(0,Number(tr.querySelector('.amount').value)||0);
+    const inrInput=tr.querySelector('.inramt');
+    if(e.currency==='INR'){
+      e.inrAmount=e.amount;
+      if(inrInput){ inrInput.readOnly=true; inrInput.value=e.amount?e.amount.toFixed(2):''; }
+    } else if(inrInput){
+      e.inrAmount=Math.max(0,Number(inrInput.value)||0);
+      inrInput.readOnly=false;
+    }
+    const error=validateExpense(e);
+    const amountInput=tr.querySelector('.amount');
+    amountInput.classList.toggle('amount-invalid',!!error);
+    tr.querySelector('.amount-error').textContent=error;
+    updateStatus();
+    refreshFilterCategories();
+  }
+
+  function updateSummary(){
+    const totals={};
+    filtered().forEach(e=>{
+      const v=inrAmount(e);
+      if(Number.isFinite(v)){
+        const label=summaryLabel(e.category);
+        totals[label]=(totals[label]||0)+v;
+      }
+    });
+    const total=Object.values(totals).reduce((a,b)=>a+b,0);
+    const ordered=[...new Set([...categories.filter(c=>totals[c]!=null),...Object.keys(totals).filter(c=>!categories.includes(c))])];
+    summaryEl.innerHTML=ordered.map(c=>`<tr><td>${escapeHtml(c)}</td><td>${formatMoney(totals[c])}</td></tr>`).join('')+
+      `<tr class="total-row"><td>Total</td><td>${formatMoney(total)}</td></tr>`;
+  }
+
+  function validateClaimDetails(){
+    const blockers=[];
+    const employee=document.getElementById('employee').value.trim();
+    const department=document.getElementById('department').value.trim();
+    const claimMonth=document.getElementById('claimMonth').value.trim();
+    const submissionDate=document.getElementById('submissionDate').value.trim();
+
+    if(!employee) blockers.push('Employee Name is required.');
+    if(!department) blockers.push('Select a department — Sales, Tech or Finance.');
+    if(!/^\d{2}-\d{4}$/.test(claimMonth)){
+      blockers.push('Claim Month is required — select a month and year.');
+    }
+    if(!/^\d{2}-\d{2}-\d{4}$/.test(submissionDate)){
+      blockers.push('Submission Date is required — use the date picker or DD-MM-YYYY.');
+    }
+    return blockers;
+  }
+
+  function computeBlockers(){
+    const blockers=[...validateClaimDetails()];
+    if(!expenses.length){
+      blockers.push('Add at least one expense before generating the PDF.');
+      return blockers;
+    }
+    const invalid=expenses.filter(e=>validateExpense(e));
+    if(invalid.length) blockers.push(`${invalid.length} expense${invalid.length===1?' needs':'s need'} a valid amount${expenses.some(x=>x.currency!=='INR')?' and INR amount':''}.`);
+    const missingReceipts=expenses.filter(e=>(Array.isArray(e.receipts)?e.receipts.length:0)===0 && normalizeReceipts(e).length===0);
+    if(missingReceipts.length) blockers.push(`${missingReceipts.length} receipt${missingReceipts.length===1?' is':'s are'} missing — every expense needs an attached receipt.`);
+    const badDates=expenses.filter(e=>e.date && !/^\d{2}-\d{2}-\d{4}$/.test(e.date));
+    if(badDates.length) blockers.push(`${badDates.length} expense date${badDates.length===1?'':'s'} invalid — use the date picker (DD-MM-YYYY).`);
+    return blockers;
+  }
+
+  const ICON_WARN='<svg class="icon icon-only" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6A2 2 0 0 0 22 18L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>';
+  const ICON_OK='<svg class="icon icon-only" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg>';
+
+  function updateStatus(){
+    updateSummary();
+    const shown=filtered();
+    const total=shown.reduce((s,e)=>s+(Number.isFinite(inrAmount(e))?inrAmount(e):0),0);
+    const blockers=computeBlockers();
+
+    if(blockers.length){
+      statusEl.className='status status--warn';
+      statusEl.innerHTML=`${ICON_WARN}<div><strong>Complete the claim details before continuing</strong>
+        <ul class="status-list">${blockers.map(b=>`<li>${escapeHtml(b)}</li>`).join('')}</ul></div>`;
+    } else {
+      statusEl.className='status status--ok';
+      statusEl.innerHTML=`${ICON_OK}<div><strong>Ready to generate</strong>Showing ${shown.length} of ${expenses.length} expense(s) — ${formatMoney(total)} total.</div>`;
+    }
+
+    const btn=document.getElementById('generatePdf');
+    btn.disabled=blockers.length>0 || isGenerating;
+    btn.title=blockers.length?blockers.join(' '):'Generate the reimbursement PDF';
+  }
+
+  ['employee','department','claimMonth','submissionDate'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){
+      el.addEventListener('input',updateStatus);
+      el.addEventListener('change',updateStatus);
+    }
+  });
+
+  rowsEl.addEventListener('input',e=>{
+    const tr=e.target.closest('tr');if(tr)updateFromRow(tr);
+  });
+
+  rowsEl.addEventListener('change',e=>{
+    const tr=e.target.closest('tr');
+    if(!tr) return;
+
+    const id=Number(tr.dataset.id);
+    const exp=expenses.find(x=>x.id===id);
+    if(!exp) return;
+
+    if(e.target.matches('input.receipt[type="file"]')){
+      const files=Array.from(e.target.files||[]);
+      if(!files.length) return;
+
+      const receipts=normalizeReceipts(exp);
+
+      const jobs=files.map(file=>new Promise(resolve=>{
+        const receipt={
+          id:'r_'+Date.now()+'_'+Math.random().toString(36).slice(2,10),
+          name:file.name,
+          type:(file.type==='application/pdf'||file.name.toLowerCase().endsWith('.pdf'))?'pdf':'image',
+          data:'',
+          preview:'',
+          pageCount:0,
+          previewError:''
+        };
+
+        const reader=new FileReader();
+        reader.onload=async()=>{
+          receipt.data=reader.result;
+
+          if(receipt.type==='pdf'){
+            try{
+              const preview=await makePdfFirstPagePreview(receipt.data);
+              receipt.preview=preview.data;
+              receipt.pageCount=preview.pages;
+            }catch(err){
+              receipt.preview='';
+              receipt.previewError='PDF preview unavailable';
+              console.warn('PDF receipt preview unavailable:',err);
+            }
+          }else{
+            receipt.preview=receipt.data;
+            receipt.pageCount=1;
+          }
+
+          resolve(receipt);
+        };
+
+        reader.onerror=()=>{
+          receipt.previewError='The receipt file could not be read.';
+          resolve(receipt);
+        };
+
+        reader.readAsDataURL(file);
+      }));
+
+      Promise.all(jobs).then(newReceipts=>{
+        const existingKeys=new Set(
+          receipts.map(r=>`${r.name||''}::${r.type||''}::${r.data||''}`)
+        );
+
+        newReceipts.forEach(r=>{
+          const key=`${r.name||''}::${r.type||''}::${r.data||''}`;
+          if(!existingKeys.has(key)){
+            receipts.push(r);
+            existingKeys.add(key);
+          }
+        });
+
+        dedupeReceipts(exp);
+        e.target.value='';
+        render();
+      });
+
+      return;
+    }
+
+    if(e.target.classList.contains('currency')){
+      exp.currency=e.target.value;
+      exp.date=tr.querySelector('.date').value.trim();
+      exp.category=tr.querySelector('.cat').value;
+      exp.description=tr.querySelector('.desc').value.trim();
+      exp.amount=Math.max(0,Number(tr.querySelector('.amount').value)||0);
+      exp.inrAmount=exp.currency==='INR'?exp.amount:'';
+      render();
+      return;
+    }
+
+    updateFromRow(tr);
+  });
+
+  rowsEl.addEventListener('click',e=>{
+    const receiptRemove=e.target.closest('.remove-receipt');
+    if(receiptRemove){
+      const tr=receiptRemove.closest('tr');
+      const exp=expenses.find(x=>x.id===Number(tr?.dataset.id));
+      if(!exp) return;
+
+      const receipts=normalizeReceipts(exp);
+      const idx=Number(receiptRemove.dataset.receiptIndex);
+
+      if(Number.isInteger(idx) && idx>=0 && idx<receipts.length){
+        receipts.splice(idx,1);
+        render();
+      }
+      return;
+    }
+
+    const thumb=e.target.closest('.receipt-thumb');
+    if(thumb){
+      openLightbox(thumb.src,thumb.alt);
+      return;
+    }
+    if(e.target.classList.contains('remove')){
+      const id=Number(e.target.closest('tr').dataset.id);
+      const idx=expenses.findIndex(x=>x.id===id);
+      if(idx>=0)expenses.splice(idx,1);
+      render();
+    }
+  });
+
+  // ---------- Lightbox ----------
+  const lightbox=document.getElementById('lightbox');
+  const lightboxImg=document.getElementById('lightboxImg');
+  function openLightbox(src,alt){
+    lightboxImg.src=src;
+    lightboxImg.alt=alt||'Receipt preview';
+    lightbox.hidden=false;
+  }
+  function closeLightbox(){
+    lightbox.hidden=true;
+    lightboxImg.src='';
+  }
+  document.getElementById('lightboxClose').addEventListener('click',closeLightbox);
+  document.getElementById('lightboxBackdrop').addEventListener('click',closeLightbox);
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape' && !lightbox.hidden) closeLightbox(); });
+
+  // ---------- Date pickers ----------
+  flatpickr('#claimMonth',{
+    plugins:[new monthSelectPlugin({shorthand:true,dateFormat:'m-Y',altFormat:'F Y'})],
+    allowInput:false
+  });
+  flatpickr('#submissionDate',{dateFormat:'d-m-Y',allowInput:true});
+  flatpickr('#dateFilter',{dateFormat:'d-m-Y',allowInput:true});
+
+  // ---------- Quick expense entry ----------
+  function showQuickError(message){
+    let note=document.getElementById('quickTopError');
+    if(!note){
+      note=document.createElement('div');
+      note.id='quickTopError';
+      note.className='quick-top-error';
+      note.setAttribute('role','alert');
+      document.querySelector('.quick-expense-bar').appendChild(note);
+    }
+    note.textContent=message;
+    note.hidden=false;
+    window.clearTimeout(note._timer);
+    note._timer=window.setTimeout(()=>{ note.hidden=true; },4500);
+  }
+
+  function resetAfterExpenseAdded(){
+    // Reset only the fields used to create the next expense.
+    // Claim-level details (including Submission Date) remain intact because
+    // they belong to the reimbursement claim and are required for PDF output.
+    const dateInput=document.getElementById('dateFilter');
+    document.getElementById('categoryFilter').value='';
+    document.getElementById('descriptionFilter').value='';
+    if(dateInput._flatpickr) dateInput._flatpickr.clear(); else dateInput.value='';
+    document.getElementById('quickCurrency').value='INR';
+    document.getElementById('quickAmount').value='';
+    document.getElementById('quickInrAmount').value='';
+    document.getElementById('quickAmountError').textContent='';
+    document.getElementById('quickInrHelper').classList.remove('field-error');
+    const topError=document.getElementById('quickTopError');
+    if(topError) topError.hidden=true;
+    updateQuickEntry();
+  }
+
+  document.getElementById('addRow').addEventListener('click',()=>{
+    const claimBlockers=validateClaimDetails();
+    if(claimBlockers.length){
+      const first=claimBlockers[0];
+      if(first.startsWith('Employee Name')){
+        document.getElementById('employee').focus();
+      }else if(first.startsWith('Select a department')){
+        document.getElementById('department').focus();
+      }else if(first.startsWith('Claim Month')){
+        document.getElementById('claimMonth').focus();
+      }else{
+        document.getElementById('submissionDate').focus();
+      }
+      showQuickError(first);
+      updateStatus();
+      return;
+    }
+
+    const currency=document.getElementById('quickCurrency').value;
+    const amount=Number(document.getElementById('quickAmount').value);
+    const inrField=document.getElementById('quickInrAmount');
+    const inrAmt=currency==='INR' ? amount : Number(inrField.value);
+    const amountError=document.getElementById('quickAmountError');
+    const inrHelper=document.getElementById('quickInrHelper');
+
+    // Category and Expense Date selected above are used as the new-row defaults.
+    // This removes duplicate entry: the user should not have to re-enter them in the table.
+    const selectedDate=document.getElementById('dateFilter').value.trim();
+    const selectedCategory=document.getElementById('categoryFilter').value.trim();
+
+    amountError.textContent='';
+    inrHelper.classList.remove('field-error');
+
+    if(!selectedDate){
+      document.getElementById('dateFilter').focus();
+      showQuickError('Select an expense date above before adding the record.');
+      return;
+    }
+    if(!/^\d{2}-\d{2}-\d{4}$/.test(selectedDate)){
+      document.getElementById('dateFilter').focus();
+      showQuickError('Use the date picker or DD-MM-YYYY for the expense date.');
+      return;
+    }
+    if(!selectedCategory){
+      document.getElementById('categoryFilter').focus();
+      showQuickError('Select a category above before adding the record.');
+      return;
+    }
+    if(!Number.isFinite(amount)||amount<=0){
+      amountError.textContent='Amount is required and must be greater than 0.';
+      document.getElementById('quickAmount').focus();
+      return;
+    }
+    if(currency!=='INR' && (!Number.isFinite(inrAmt)||inrAmt<=0)){
+      inrHelper.textContent='INR amount is required for non-INR currency.';
+      inrHelper.classList.add('field-error');
+      inrField.focus();
+      return;
+    }
+
+    const description=document.getElementById('descriptionFilter').value.trim();
+    if(!description){
+      document.getElementById('descriptionFilter').focus();
+      showQuickError('Enter a description or business purpose before adding the record.');
+      return;
+    }
+
+    addExpense({
+      date:selectedDate,
+      category:selectedCategory,
+      description,
+      currency,
+      amount,
+      inrAmount:currency==='INR'?amount:inrAmt
+    });
+
+    resetAfterExpenseAdded();
+    document.getElementById('quickAmount').focus();
+  });
+
+  function updateQuickEntry(){
+    const currency=document.getElementById('quickCurrency').value;
+    const amountField=document.getElementById('quickAmount');
+    const inrField=document.getElementById('quickInrAmount');
+    const inrHelper=document.getElementById('quickInrHelper');
+    inrHelper.classList.remove('field-error');
+    if(currency==='INR'){
+      inrField.readOnly=true;
+      const amount=Number(amountField.value);
+      inrField.value=Number.isFinite(amount)&&amount>0?amount.toFixed(2):'';
+      inrField.placeholder='Calculated';
+      inrHelper.textContent='Same as amount (INR).';
+    } else {
+      inrField.readOnly=false;
+      inrField.placeholder='Enter INR amount';
+      inrHelper.textContent='Amount actually charged/reimbursed in INR.';
+    }
+  }
+  document.getElementById('quickCurrency').addEventListener('change',()=>{
+    if(document.getElementById('quickCurrency').value!=='INR') document.getElementById('quickInrAmount').value='';
+    updateQuickEntry();
+  });
+  document.getElementById('quickAmount').addEventListener('input',updateQuickEntry);
+  updateQuickEntry();
+
+  // ---------- PDF.js (classic build, works from file://) ----------
+  function ensurePdfWorker(){
+    if(window.pdfjsLib){
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+  }
+  ensurePdfWorker();
+
+  function dataUrlToBytes(dataUrl){
+    const base64=dataUrl.split(',')[1];
+    const binary=atob(base64);
+    const bytes=new Uint8Array(binary.length);
+    for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+    return bytes;
+  }
+
+  async function getPdfDocument(dataUrl){
+    if(!window.pdfjsLib){
+      throw new Error('PDF library failed to load. Check your internet connection and reload the page.');
+    }
+    ensurePdfWorker();
+    return window.pdfjsLib.getDocument({data:dataUrlToBytes(dataUrl)}).promise;
+  }
+
+  async function makePdfFirstPagePreview(dataUrl){
+    const pdf=await getPdfDocument(dataUrl);
+    const page=await pdf.getPage(1);
+    const base=page.getViewport({scale:1});
+    const scale=180/base.width;
+    const viewport=page.getViewport({scale});
+    const canvas=document.createElement('canvas');
+    canvas.width=Math.ceil(viewport.width);
+    canvas.height=Math.ceil(viewport.height);
+    await page.render({canvasContext:canvas.getContext('2d'),viewport}).promise;
+    return {data:canvas.toDataURL('image/jpeg',0.88),pages:pdf.numPages};
+  }
+
+  async function renderPdfReceipt(dataUrl,container){
+    const pdf=await getPdfDocument(dataUrl);
+    for(let p=1;p<=pdf.numPages;p++){
+      const page=await pdf.getPage(p);
+      const viewport=page.getViewport({scale:1.45});
+      const canvas=document.createElement('canvas');
+      canvas.width=Math.ceil(viewport.width);
+      canvas.height=Math.ceil(viewport.height);
+
+      // A PDF receipt page is already an A4 document. Put each source PDF
+      // page directly onto its own printable page instead of first creating
+      // a metadata wrapper page. This prevents the wrapper from becoming an
+      // empty page when the A4 canvas flows to the next printed page.
+      const nativePage=document.createElement('div');
+      nativePage.className='receipt-page pdf-native-page';
+      nativePage.dataset.pdfPage=String(p);
+      nativePage.appendChild(canvas);
+      container.appendChild(nativePage);
+
+      await page.render({
+        canvasContext:canvas.getContext('2d'),
+        viewport
+      }).promise;
+    }
+  }
+
+  // ---------- Print / PDF build ----------
+  function monthLabel(raw){
+    const cm=/^(\d{2})-(\d{4})$/.exec(raw||'');
+    if(!cm)return raw||'';
+    const names=['January','February','March','April','May','June','July','August','September','October','November','December'];
+    return names[Number(cm[1])-1]+' '+cm[2];
+  }
+
+  async function buildPrint(){
+    const claimBlockers=validateClaimDetails();
+    if(claimBlockers.length){
+      updateStatus();
+      const first=claimBlockers[0];
+      if(first.startsWith('Employee Name')) document.getElementById('employee').focus();
+      else if(first.startsWith('Select a department')) document.getElementById('department').focus();
+      else if(first.startsWith('Claim Month')) document.getElementById('claimMonth').focus();
+      else document.getElementById('submissionDate').focus();
+      showQuickError(first);
+      return;
+    }
+
+    const shown=filtered();
+    const employee=document.getElementById('employee').value.trim();
+    const dept=document.getElementById('department').value.trim();
+    const subFmt=formatDate(document.getElementById('submissionDate').value);
+    const claimMonth=monthLabel(document.getElementById('claimMonth').value.trim());
+
+    const total=shown.reduce((s,e)=>s+(Number.isFinite(inrAmount(e))?inrAmount(e):0),0);
+    const totals={};
+    shown.forEach(e=>{
+      const v=inrAmount(e);
+      if(Number.isFinite(v)){
+        const label=summaryLabel(e.category);
+        totals[label]=(totals[label]||0)+v;
+      }
+    });
+    const order=[...new Set([...categories.filter(c=>totals[c]!=null),...Object.keys(totals).filter(c=>!categories.includes(c))])];
+
+    let out=`
+      <div class="print-letterhead">
+        <div class="print-letterhead-main">
+          <div class="print-brand">
+            <img class="print-logo" src="https://crm.zoosglobal.com/favicon.png" alt="Zoos Global logo">
+            <div class="print-title-line">
+              <div class="print-title-primary">
+                <span class="print-org-name">Style ETrademark Pvt. Ltd.</span>
+                <span class="print-title-divider">|</span>
+                <span class="print-doc-title">Employee Reimbursement Claim</span>
+              </div>
+              <div class="print-org-brand">ZOOS GLOBAL</div>
+            </div>
+          </div>
+          <div class="print-doc-badge">REIMBURSEMENT CLAIM</div>
+        </div>
+        <div class="print-claim-strip">
+          <div class="strip-item"><span>Document Type</span><strong>Employee Expense Claim</strong></div>
+          <div class="strip-item"><span>Claim Month</span><strong>${escapeHtml(claimMonth||'—')}</strong></div>
+          <div class="strip-item"><span>Total Reimbursement</span><strong>${formatMoney(total)}</strong></div>
+        </div>
+      </div>
+
+      <div class="print-section-label">Employee Information</div>
+      <div class="meta">
+        <div class="meta-item"><span>Employee Name</span><strong>${escapeHtml(employee)}</strong></div>
+        <div class="meta-item"><span>Department</span><strong>${escapeHtml(dept||'—')}</strong></div>
+        <div class="meta-item"><span>Claim Month</span><strong>${escapeHtml(claimMonth)}</strong></div>
+        <div class="meta-item"><span>Submission Date</span><strong>${escapeHtml(subFmt)}</strong></div>
+      </div>
+
+      <div class="print-section-label">Expense Details</div>
+      <table class="print-table"><thead><tr>
+        <th>No.</th><th>Date</th><th>Category</th><th>Description / Business Purpose</th><th>Currency</th><th>Amount</th>
+        <th>INR Amount (₹)</th><th>Receipt</th>
+      </tr></thead><tbody>`;
+    shown.forEach((e,i)=>{
+      const v=inrAmount(e);
+      out+=`<tr><td>${i+1}</td><td>${escapeHtml(formatDate(e.date))}</td><td>${escapeHtml(e.category)}</td>
+      <td>${escapeHtml(e.description)}</td><td>${escapeHtml(e.currency)}</td><td class="money">${formatAmount(e.amount,e.currency)}</td>
+      <td class="money">${formatMoney(v)}</td>
+      <td>${(Array.isArray(e.receipts)?e.receipts.length:0)||normalizeReceipts(e).length ? `${(Array.isArray(e.receipts)?e.receipts.length:1)} attached` : '—'}</td></tr>`;
+    });
+    out+=`</tbody><tfoot><tr><td colspan="6" style="text-align:right">Total</td><td class="money">${formatMoney(total)}</td><td></td></tr></tfoot></table>`;
+
+    out+=`<div class="print-section-label">Category Summary</div>
+      <div class="print-summary-wrap"><table class="print-summary"><tbody>`;
+    order.forEach(c=>out+=`<tr><td>${escapeHtml(c)}</td><td>${formatMoney(totals[c])}</td></tr>`);
+    out+=`<tr class="total-row"><td>Total Reimbursement</td><td>${formatMoney(total)}</td></tr>
+      </tbody></table></div>`;
+
+    if(shown.length){
+      out+=`<div class="print-section-label">Receipt Attachments</div>`;
+    }
+
+    out+=`<div class="print-footer"><span>Style E-Trademark Pvt. Ltd. &middot; Zoos Global</span><span>Employee Reimbursement Claim</span></div>`;
+
+    const printPreview=document.getElementById('printPreview');
+    printPreview.innerHTML=out;
+
+    const receiptJobs=[];
+    shown.forEach((e,expenseIndex)=>{
+      const receipts=dedupeReceipts(e);
+      receipts.forEach((r,receiptIndex)=>receiptJobs.push({e,expenseIndex,r,receiptIndex}));
+    });
+    for(let receiptIndex=0;receiptIndex<receiptJobs.length;receiptIndex++){
+      const {e,expenseIndex,r,receiptIndex:withinExpense}=receiptJobs[receiptIndex];
+
+      // Native PDF receipts are already paginated A4 documents. Render their
+      // source pages directly; do not create an extra receipt metadata page.
+      if(r.data && r.type==='pdf'){
+        try{
+          await renderPdfReceipt(r.data,printPreview);
+        }catch(err){
+          const page=document.createElement('div');
+          page.className='receipt-page';
+          page.innerHTML=`
+            <div class="receipt-page-header">
+              <div class="print-brand">
+                <img class="print-logo" src="https://crm.zoosglobal.com/favicon.png" alt="Zoos Global logo">
+                <div><h2>Receipt Attachment</h2><div style="font-size:7px;color:#667085;font-weight:700;letter-spacing:.06em;text-transform:uppercase">Zoos Global · Employee Reimbursement</div></div>
+              </div>
+              <span>Receipt ${receiptIndex+1} of ${receiptJobs.length} · Expense ${expenseIndex+1}</span>
+            </div>
+            <div class="receipt-placeholder">Could not render this PDF receipt in the browser. The original file remains attached to this expense.</div>`;
+          printPreview.appendChild(page);
+          console.error(err);
+        }
+        continue;
+      }
+
+      const page=document.createElement('div');
+      page.className='receipt-page';
+      page.innerHTML=`
+        <div class="receipt-page-header">
+          <div class="print-brand">
+            <img class="print-logo" src="https://crm.zoosglobal.com/favicon.png" alt="Zoos Global logo">
+            <div><h2>Receipt Attachment</h2><div style="font-size:7px;color:#667085;font-weight:700;letter-spacing:.06em;text-transform:uppercase">Zoos Global · Employee Reimbursement</div></div>
+          </div>
+          <span>Receipt ${receiptIndex+1} of ${receiptJobs.length} · Expense ${expenseIndex+1}</span>
+        </div>
+        <div class="receipt-meta">
+          <b>${escapeHtml(e.category)}</b> — ${escapeHtml(e.description)||'No description'}<br>
+          Date: ${escapeHtml(formatDate(e.date))||'—'} &nbsp;|&nbsp;
+          Amount: ${formatAmount(e.amount,e.currency)} &nbsp;|&nbsp;
+          INR Amount: ${formatMoney(inrAmount(e))}<br>
+          Attachment: ${escapeHtml(r.name||'Receipt')}
+        </div>
+        <div class="receipt-body"></div>
+        <div class="print-footer"><span>Style E-Trademark Pvt. Ltd. · Zoos Global</span><span>Employee Reimbursement Claim</span></div>`;
+      const body=page.querySelector('.receipt-body');
+      if(r.data && r.type==='image'){
+        const img=document.createElement('img');
+        img.src=r.data;
+        img.alt=`Receipt attachment ${receiptIndex+1}`;
+        body.appendChild(img);
+      } else {
+        body.innerHTML='<div class="receipt-placeholder">Receipt data unavailable.</div>';
+      }
+      printPreview.appendChild(page);
+    }
+  }
+
+  document.getElementById('generatePdf').addEventListener('click',async()=>{
+    const btn=document.getElementById('generatePdf');
+    if(btn.disabled || isGenerating) return;
+    isGenerating=true;
+    btn.disabled=true;
+    const originalHtml=btn.innerHTML;
+    btn.innerHTML='Preparing reimbursement PDF…';
+    try{
+      await buildPrint();
+      window.print();
+    } finally {
+      isGenerating=false;
+      btn.innerHTML=originalHtml;
+      updateStatus();
+    }
+  });
+
+  render();
+
+})();</script>
+
+<div class="creator-footer" aria-label="Created by Shivam">
+  <span>Made with</span>
+  <span class="heart-wrap" aria-hidden="true">
+    <img class="heart" src="https://github.githubassets.com/images/icons/emoji/unicode/2764.png" alt="">
+  </span>
+  <span>by <span class="creator-name">Shivam</span></span>
+</div>
+</body>
+</html>
